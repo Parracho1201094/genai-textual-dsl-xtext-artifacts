@@ -1,0 +1,14 @@
+2024-06-01 18:59:19 [INFO] - ImportStepDefault success.
+2024-06-01 18:59:19 [INFO] - ImportStepDefault success.
+2024-06-01 18:59:19 [INFO] - ImportStepDefault success.
+2024-06-01 18:59:19 [INFO] - RemoveDuplicatesStepDefault success.
+2024-06-01 18:59:19 [INFO] - SaveStepDefault success.
+2024-06-01 18:59:19 [INFO] - GroupByStepDefault success.
+2024-06-01 18:59:19 [INFO] - SaveStepDefault success.
+2024-06-01 18:59:19 [INFO] - JoinStepDefault success.
+2024-06-01 18:59:19 [INFO] - SaveStepDefault success.
+2024-06-01 18:59:19 [INFO] - AppendRowsStepDefault success.
+2024-06-01 18:59:19 [INFO] - SaveStepDefault success.
+2024-06-01 18:59:19 [INFO] - JoinStepDefault success.
+2024-06-01 18:59:19 [INFO] - SaveStepDefault success.
+2024-06-01 18:59:19 [INFO] - SaveStepDefault success.

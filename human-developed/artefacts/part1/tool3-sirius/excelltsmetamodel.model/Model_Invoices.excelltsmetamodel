@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<excelltsmetamodel:Model xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:excelltsmetamodel="http://www.example.org/excelltsmetamodel" name="Invoices">
+  <tables name="Clients">
+    <columns name="id_client_tc" dataType="NUMBER"/>
+    <columns name="name_client_ts"/>
+    <columns name="nif_tc"/>
+  </tables>
+  <tables name="Products">
+    <columns name="id_product_tp" dataType="NUMBER"/>
+    <columns name="name_product_tp"/>
+    <columns name="price_tp" dataType="NUMBER"/>
+  </tables>
+  <tables name="Sales">
+    <columns name="id_sale_ts" dataType="NUMBER"/>
+    <columns name="id_client_ts" dataType="NUMBER"/>
+    <columns name="id_product_ts" dataType="NUMBER"/>
+    <columns name="quantity_ts" dataType="NUMBER"/>
+  </tables>
+  <tables name="Sales Grouped By Client,Product with quantity">
+    <columns name="id_sale_tgbpq" dataType="NUMBER"/>
+    <columns name="id_client_tgbpq" dataType="NUMBER"/>
+    <columns name="id_product_tgbpq" dataType="NUMBER"/>
+    <columns name="quantity_tgbpq" dataType="NUMBER"/>
+  </tables>
+  <tables name="Sales with price">
+    <columns name="id_sale_tsp" dataType="NUMBER"/>
+    <columns name="id_client_tsp" dataType="NUMBER"/>
+    <columns name="id_product_tsp" dataType="NUMBER"/>
+    <columns name="quantity_tsp" dataType="NUMBER"/>
+    <columns name="price_tsp" dataType="NUMBER"/>
+  </tables>
+  <tables name="Sales with total">
+    <columns name="id_sale_tst" dataType="NUMBER"/>
+    <columns name="id_client_tst" dataType="NUMBER"/>
+    <columns name="id_product_tst" dataType="NUMBER"/>
+    <columns name="quantity_tst" dataType="NUMBER"/>
+    <columns name="price_tst" dataType="NUMBER"/>
+    <columns name="total_tst" dataType="NUMBER"/>
+  </tables>
+  <tables name="Grouped by idClient Sum Total">
+    <columns name="id_client_tgist" dataType="NUMBER"/>
+    <columns name="total_tgist" dataType="NUMBER"/>
+  </tables>
+  <tables name="Final">
+    <columns name="id_client_tf" dataType="NUMBER"/>
+    <columns name="name_client_tf"/>
+    <columns name="nif_tf"/>
+    <columns name="total_tf" dataType="NUMBER"/>
+  </tables>
+  <steps xsi:type="excelltsmetamodel:Import" name="Import all tables" next="//@steps.1">
+    <tablesToImport table="//@tables.0" path="/clients.csv" delimiter=","/>
+    <tablesToImport table="//@tables.1" path="/products.csv" delimiter=","/>
+    <tablesToImport table="//@tables.2" path="/sales.csv" delimiter=","/>
+  </steps>
+  <steps xsi:type="excelltsmetamodel:RemoveDuplicates" name="Remove duplicates by sales id" description="Delete all duplicates" next="//@steps.2" table="//@tables.2" column="//@tables.2/@columns.0"/>
+  <steps xsi:type="excelltsmetamodel:Filter" name="Filters quantity > 10" description="The goal is to deal with significant quantity" next="//@steps.3" table="//@tables.2" column="//@tables.2/@columns.3" operand="10" operator="GREATER_THAN"/>
+  <steps xsi:type="excelltsmetamodel:Group" name="Group by client - name and sum quantity" description="Group by client, name and sum quantity" next="//@steps.4" table="//@tables.2" groupBy="//@tables.2/@columns.3 //@tables.2/@columns.1" resultTable="//@tables.3" operandColumn="//@tables.2/@columns.3" operation="SUM" resultColumn="//@tables.2/@columns.1"/>
+  <steps xsi:type="excelltsmetamodel:Join" name="Join the Grouped With the Price" description="The goal is to add the price to the grouped table" next="//@steps.5" tableLeft="//@tables.3" tableRight="//@tables.1" columnLeft="//@tables.3/@columns.2" columnRight="//@tables.1/@columns.0" resultTable="//@tables.4" selectColumns="//@tables.3/@columns.1 //@tables.3/@columns.2 //@tables.3/@columns.0 //@tables.3/@columns.3 //@tables.1/@columns.2"/>
+  <steps xsi:type="excelltsmetamodel:AppendRows" name="Parse to the table with total schema" description="Parse to the table with total schema" next="//@steps.6" originTable="//@tables.4" destinTable="//@tables.5">
+    <associations originCol="//@tables.4/@columns.0" destinCol="//@tables.5/@columns.0"/>
+    <associations originCol="//@tables.4/@columns.1" destinCol="//@tables.5/@columns.1"/>
+    <associations originCol="//@tables.4/@columns.2" destinCol="//@tables.5/@columns.2"/>
+    <associations originCol="//@tables.4/@columns.3" destinCol="//@tables.5/@columns.3"/>
+    <associations originCol="//@tables.4/@columns.4" destinCol="//@tables.5/@columns.4"/>
+  </steps>
+  <steps xsi:type="excelltsmetamodel:Lookup" name="Gets the total" description="Multiplies Quantity*Price to obtain total" next="//@steps.7" table="//@tables.5" lookupTable="//@tables.5" column="//@tables.5/@columns.0" operandColumn="//@tables.5/@columns.3" matchColumn="//@tables.5/@columns.0" lookupColumn="//@tables.5/@columns.4" resultColumn="//@tables.5/@columns.5" operation="NUMERIC_MULTIPLY" resultTable="//@tables.5"/>
+  <steps xsi:type="excelltsmetamodel:Group" name="Groups the sum quantity to pay" description="Groups the sum quantity to pay" next="//@steps.8" table="//@tables.5" groupBy="//@tables.5/@columns.1" resultTable="//@tables.6" operandColumn="//@tables.5/@columns.3" resultColumn="//@tables.6/@columns.1"/>
+  <steps xsi:type="excelltsmetamodel:Join" name="Join into to client to finalize" description="With this is possible to obtain all info" next="//@steps.9" tableLeft="//@tables.6" tableRight="//@tables.0" columnLeft="//@tables.6/@columns.0" columnRight="//@tables.0/@columns.0" resultTable="//@tables.7" selectColumns="//@tables.0/@columns.0 //@tables.0/@columns.2 //@tables.6/@columns.0 //@tables.6/@columns.1"/>
+  <steps xsi:type="excelltsmetamodel:Save" name="Save the final table">
+    <tablesToSave table="//@tables.7" path="/output-invoice.csv">
+      <columnsNames>id_client</columnsNames>
+      <columnsNames>name_client</columnsNames>
+      <columnsNames>nif</columnsNames>
+      <columnsNames>total</columnsNames>
+    </tablesToSave>
+  </steps>
+</excelltsmetamodel:Model>

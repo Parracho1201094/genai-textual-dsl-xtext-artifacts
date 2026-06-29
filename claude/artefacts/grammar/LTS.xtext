@@ -1,0 +1,447 @@
+/*
+ * LTS – Load, Transform, Save Language
+ * Xtext Grammar
+ *
+ * Target users : Excel data analysts / subject-matter experts
+ * Design goals : readable, intuitive, strongly-typed, extensible
+ *
+ * Project: ENORM – Master in Informatics Engineering 2023/2024
+ */
+grammar org.lts.LTS with org.eclipse.xtext.common.Terminals
+
+generate lts "http://www.lts.org/LTS"
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROOT
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A Process is the top-level element. It groups all declarations and steps
+ * that make up one complete LTS program.
+ */
+Process:
+    'process' name=ID
+    ('description' ':' description=STRING)?
+    '{'
+        (sources+=DataSource)*
+        (tables+=TableDeclaration)*
+        (log=LogDeclaration)?
+        (steps+=Step)+
+    '}'
+;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DATA SOURCES
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A DataSource describes WHERE data lives.
+ * Currently only CSV is required; the abstract rule makes extension trivial.
+ */
+DataSource:
+    CsvDataSource
+;
+
+CsvDataSource:
+    'datasource' name=ID 'type' 'CSV'
+    '{'
+        'path' ':' path=STRING
+        ('delimiter'    ':' delimiter=STRING)?
+        ('hasHeader'    ':' hasHeader=BooleanValue)?
+        ('encoding'     ':' encoding=STRING)?
+    '}'
+;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TABLE & COLUMN DECLARATIONS  (metamodel: strongly-typed schema)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A TableDeclaration describes the schema of a table (its columns and types).
+ * Tables are either loaded from a source, created empty, or are outputs.
+ */
+TableDeclaration:
+    InputTableDeclaration | OutputTableDeclaration | EmptyTableDeclaration
+;
+
+InputTableDeclaration:
+    'table' name=ID 'from' source=[CsvDataSource]
+    '{'
+        (columns+=ColumnDeclaration)+
+    '}'
+;
+
+OutputTableDeclaration:
+    'output' 'table' name=ID 'to' source=[CsvDataSource]
+    '{'
+        (columns+=ColumnDeclaration)+
+    '}'
+;
+
+EmptyTableDeclaration:
+    'create' 'table' name=ID
+    '{'
+        (columns+=ColumnDeclaration)+
+    '}'
+;
+
+ColumnDeclaration:
+    name=ID ':' type=DataType
+;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOG DECLARATION
+// ─────────────────────────────────────────────────────────────────────────────
+
+LogDeclaration:
+    'log' name=ID 'to' path=STRING
+    ('level' ':' level=LogLevel)?
+;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEPS  (the ordered sequence of transformations)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Each Step operates on one or more tables and may produce a result table.
+ * Steps are ordered: they execute top-to-bottom.
+ */
+Step:
+      LoadStep
+    | SaveStep
+    | SortStep
+    | FilterStep
+    | RemoveDuplicatesStep
+    | RemoveColumnsStep
+    | InsertColumnStep
+    | CopyStep
+    | JoinStep
+    | AppendStep
+    | GroupStep
+    | LookupStep
+    | StringManipulationStep
+    | CalculateColumnStep
+    | CustomFunctionStep
+;
+
+// ── Load ──────────────────────────────────────────────────────────────────────
+
+/**
+ * LOAD reads a named InputTable from its source into memory.
+ * Example:
+ *   load employee
+ */
+LoadStep:
+    'load' table=[InputTableDeclaration] (';')?
+;
+
+// ── Save ──────────────────────────────────────────────────────────────────────
+
+/**
+ * SAVE writes a table to its output datasource.
+ * Example:
+ *   save payments
+ */
+SaveStep:
+    'save' table=[TableDeclaration] (';')?
+;
+
+// ── Sort ──────────────────────────────────────────────────────────────────────
+
+/**
+ * SORT orders the rows of a table by one or more columns.
+ * Example:
+ *   sort employee by id ASC
+ *   sort employee by lastName ASC, firstName ASC
+ */
+SortStep:
+    'sort' table=[TableDeclaration] 'by' sortKeys+=SortKey (',' sortKeys+=SortKey)* (';')?
+;
+
+SortKey:
+    column=ID order=SortOrder?
+;
+
+// ── Filter ────────────────────────────────────────────────────────────────────
+
+/**
+ * FILTER removes rows that do NOT satisfy the condition.
+ * (keep-semantics, same as SQL WHERE)
+ * Example:
+ *   filter employee where workedHours > 0
+ */
+FilterStep:
+    'filter' table=[TableDeclaration] 'where' condition=Expression (';')?
+;
+
+// ── Remove Duplicates ─────────────────────────────────────────────────────────
+
+/**
+ * REMOVE DUPLICATES keeps the first occurrence of each unique key.
+ * Example:
+ *   remove duplicates employee by id
+ */
+RemoveDuplicatesStep:
+    'remove' 'duplicates' table=[TableDeclaration] 'by' keys+=ID (',' keys+=ID)* (';')?
+;
+
+// ── Remove Columns ────────────────────────────────────────────────────────────
+
+/**
+ * DROP removes one or more columns from a table.
+ * Example:
+ *   drop columns workedHours, hourValue from payments
+ */
+RemoveColumnsStep:
+    'drop' 'columns' columns+=ID (',' columns+=ID)* 'from' table=[TableDeclaration] (';')?
+;
+
+// ── Insert Column ─────────────────────────────────────────────────────────────
+
+/**
+ * ADD COLUMN appends a column computed from an expression.
+ * Example:
+ *   add column payment : Decimal = workedHours * hourValue to payments
+ */
+InsertColumnStep:
+    'add' 'column' name=ID ':' type=DataType '=' expression=Expression 'to' table=[TableDeclaration] (';')?
+;
+
+// ── Copy ──────────────────────────────────────────────────────────────────────
+
+/**
+ * COPY appends all rows from a source table into a target table.
+ * The target must have compatible (superset) schema.
+ * Example:
+ *   copy employee into payments
+ */
+CopyStep:
+    'copy' source=[TableDeclaration] 'into' target=[TableDeclaration] (';')?
+;
+
+// ── Join ──────────────────────────────────────────────────────────────────────
+
+/**
+ * JOIN merges two tables on matching key columns.
+ * Optional: aggregation on a non-key column using an aggregate function.
+ * Example:
+ *   join payments with workedHours on employeeId aggregating workedHours using SUM
+ */
+JoinStep:
+    'join' left=[TableDeclaration] 'with' right=[TableDeclaration]
+    'on' leftKey=ID '=' rightKey=ID
+    ('aggregating' aggColumn=ID 'using' aggFunction=AggregateFunction)?
+    (';')?
+;
+
+// ── Append Rows ───────────────────────────────────────────────────────────────
+
+/**
+ * APPEND adds all rows from source to target (union-append, no key check).
+ * Example:
+ *   append workedHours to payments
+ */
+AppendStep:
+    'append' source=[TableDeclaration] 'to' target=[TableDeclaration] (';')?
+;
+
+// ── Group ─────────────────────────────────────────────────────────────────────
+
+/**
+ * GROUP BY aggregates rows; produces a new table.
+ * Example:
+ *   group payments by employeeId aggregating payment using SUM into summary
+ */
+GroupStep:
+    'group' table=[TableDeclaration]
+    'by' groupKeys+=ID (',' groupKeys+=ID)*
+    'aggregating' aggColumn=ID 'using' aggFunction=AggregateFunction
+    'into' result=[TableDeclaration]
+    (';')?
+;
+
+// ── Lookup ────────────────────────────────────────────────────────────────────
+
+/**
+ * LOOKUP performs a VLOOKUP-style column fill.
+ * It looks up a key column in a reference table and brings back a value column.
+ * Example:
+ *   lookup categoryName from category on categoryId into payments
+ */
+LookupStep:
+    'lookup' fetchColumn=ID 'from' reference=[TableDeclaration]
+    'on' referenceKey=ID
+    'into' target=[TableDeclaration] 'using' targetKey=ID
+    (';')?
+;
+
+// ── String Manipulation ───────────────────────────────────────────────────────
+
+/**
+ * STRING operations applied to a column, writing result into a new or existing column.
+ * Example:
+ *   split fullName by " " into firstName, lastName in employee
+ *   extract email from 0 to 5 into prefix in clients
+ *   concat firstName, " ", lastName into fullName in employee
+ */
+StringManipulationStep:
+    ConcatStep | SplitStep | ExtractStep
+;
+
+ConcatStep:
+    'concat' parts+=ConcatPart ('+' parts+=ConcatPart)*
+    'into' target=ID 'in' table=[TableDeclaration]
+    (';')?
+;
+
+ConcatPart:
+    value=Expression
+;
+
+SplitStep:
+    'split' source=ID ('by' delimiter=STRING | 'at' position=INT)
+    'into' results+=ID (',' results+=ID)*
+    'in' table=[TableDeclaration]
+    (';')?
+;
+
+ExtractStep:
+    'extract' source=ID
+    ('from' start=INT 'to' end=INT | 'matching' pattern=STRING)
+    'into' target=ID 'in' table=[TableDeclaration]
+    (';')?
+;
+
+// ── Calculated Column ─────────────────────────────────────────────────────────
+
+/**
+ * CALCULATE sets the value of an existing column using an expression.
+ * Differs from InsertColumnStep in that the column already exists.
+ * Example:
+ *   calculate payment = workedHours * hourValue in payments
+ */
+CalculateColumnStep:
+    'calculate' column=ID '=' expression=Expression 'in' table=[TableDeclaration] (';')?
+;
+
+// ── Custom / External Function ────────────────────────────────────────────────
+
+/**
+ * CALL allows invoking a user-supplied Java static method.
+ * This is the extensibility hook: users provide a fully-qualified class name.
+ * The result is written into a column.
+ * Example:
+ *   call "com.example.MyFunctions.computeBonus"
+ *       with employeeId, categoryName
+ *       into bonus in payments
+ */
+CustomFunctionStep:
+    'call' function=STRING
+    ('with' args+=ID (',' args+=ID)*)?
+    ('into' result=ID 'in' table=[TableDeclaration])?
+    (';')?
+;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPRESSIONS  (strongly-typed sub-language)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Expressions follow standard operator precedence (lowest to highest):
+ *   OR  →  AND  →  comparison  →  addition  →  multiplication  →  unary  →  primary
+ */
+Expression:
+    OrExpression
+;
+
+OrExpression returns Expression:
+    AndExpression ({OrExpression.left=current} 'or' right=AndExpression)*
+;
+
+AndExpression returns Expression:
+    ComparisonExpression ({AndExpression.left=current} 'and' right=ComparisonExpression)*
+;
+
+ComparisonExpression returns Expression:
+    AddExpression (
+        {ComparisonExpression.left=current}
+        operator=ComparisonOperator
+        right=AddExpression
+    )*
+;
+
+AddExpression returns Expression:
+    MulExpression (
+        {AddExpression.left=current}
+        operator=('+' | '-')
+        right=MulExpression
+    )*
+;
+
+MulExpression returns Expression:
+    UnaryExpression (
+        {MulExpression.left=current}
+        operator=('*' | '/')
+        right=UnaryExpression
+    )*
+;
+
+UnaryExpression returns Expression:
+    {NotExpression} 'not' operand=PrimaryExpression
+    | PrimaryExpression
+;
+
+PrimaryExpression returns Expression:
+      {ParenExpression} '(' inner=Expression ')'
+    | {StringLiteral}   value=STRING
+    | {IntLiteral}      value=INT
+    | {DecimalLiteral}  value=DECIMAL
+    | {BoolLiteral}     value=BooleanValue
+    | {NullLiteral}     'null'
+    | {ColumnRef}       column=ID
+;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TERMINALS & ENUMERATIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum DataType:
+    INTEGER   = 'Integer'
+  | DECIMAL   = 'Decimal'
+  | STRING    = 'String'
+  | BOOLEAN   = 'Boolean'
+  | DATE      = 'Date'
+  | TIMESTAMP = 'Timestamp'
+;
+
+enum SortOrder:
+    ASC  = 'ASC'
+  | DESC = 'DESC'
+;
+
+enum AggregateFunction:
+    SUM   = 'SUM'
+  | AVG   = 'AVG'
+  | MIN   = 'MIN'
+  | MAX   = 'MAX'
+  | COUNT = 'COUNT'
+;
+
+enum LogLevel:
+    INFO    = 'INFO'
+  | WARNING = 'WARNING'
+  | ERROR   = 'ERROR'
+;
+
+enum BooleanValue:
+    TRUE  = 'true'
+  | FALSE = 'false'
+;
+
+ComparisonOperator returns ecore::EString:
+    '==' | '!=' | '<' | '<=' | '>' | '>='
+;
+
+terminal DECIMAL returns ecore::EDouble:
+    ('0'..'9')+ '.' ('0'..'9')+
+;

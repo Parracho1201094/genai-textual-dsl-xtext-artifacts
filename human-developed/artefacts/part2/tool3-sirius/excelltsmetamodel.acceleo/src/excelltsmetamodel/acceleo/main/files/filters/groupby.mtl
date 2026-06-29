@@ -1,0 +1,219 @@
+[comment encoding = UTF-8 /]
+[module groupby('http://www.example.org/excelltsmetamodel')]
+
+[template public generateStepsGroupByStep(aModel : Model)]
+
+[aModel.generateGroupByStepDefault(aModel)/]
+[aModel.generateFactoryGroupByStep(aModel)/]
+[aModel.generateIGroupByStep(aModel)/]
+
+[/template]
+
+[template private generateGroupByStepDefault(aModel : Model)]
+[file ('org/enorm/domain/steps/groupByStep/GroupByStepDefault.java', false, 'UTF-8')]
+
+package org.enorm.domain.steps.groupByStep;
+
+import org.enorm.domain.enums.GroupByOperationType;
+import org.enorm.domain.tables.Column;
+import org.enorm.domain.tables.Table;
+import org.enorm.domain.tables.factories.FactoryTable;
+import org.enorm.domain.utils.EnumUtils;
+import org.enorm.domain.utils.ListUtils;
+[if (aModel.logs)]
+import org.enorm.Logger;
+[/if]
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.enorm.domain.utils.EnumUtils.allIntegers;
+
+public class GroupByStepDefault implements IGroupByStep {
+
+    public Table apply(Table inputTable, List<Column> groupBy, Column operandColumn, GroupByOperationType operation, FactoryTable factoryTable) {
+
+        List<Column> orderedGroupBy = ListUtils.reorderListBasedOnAnother(inputTable.getColumnList(), groupBy);
+
+        Map<List<Object>, List<Object>> groupedData = new HashMap<>();
+
+        for (int lineIndex = 1; lineIndex <= inputTable.getNumLines(); lineIndex++) {
+
+            Map<Column, Object> columnInfoInThisLine = inputTable.getLineInfo(lineIndex);
+
+            List<Column> columnsToGroup = inputTable.getColumnList().stream().filter(orderedGroupBy::contains).toList();
+
+            List<Object> valuesToGroup = new ArrayList<>();
+            for (Column column : columnsToGroup) {
+                valuesToGroup.add(columnInfoInThisLine.get(column));
+            }
+
+            Object operandResult = columnInfoInThisLine.get(operandColumn);
+
+            if (groupedData.get(valuesToGroup) == null) {
+                groupedData.put(valuesToGroup, new ArrayList<>(List.of(operandResult)));
+            } else {
+                List<Object> newList = new ArrayList<>(groupedData.get(valuesToGroup));
+                newList.add(operandResult);
+                groupedData.put(valuesToGroup, newList);
+            }
+        }
+
+        Map<List<Object>, Object> finalGroupedData = new HashMap<>();
+
+        for (List<Object> key : groupedData.keySet()) {
+            List<Object> value = groupedData.get(key);
+
+            switch (operation) {
+                case SUM -> {
+                    finalGroupedData.put(key, sumValues(value));
+                }
+                case MAX -> {
+                    finalGroupedData.put(key, maxValues(value));
+                }
+                case MIN -> {
+                    finalGroupedData.put(key, minValues(value));
+                }
+                case COUNT -> {
+                    finalGroupedData.put(key, (double) value.size());
+                }
+                case AVERAGE -> {
+                    finalGroupedData.put(key, avgValues(value));
+                }
+            }
+        }
+
+        Table resultTable = factoryTable.generateTable();
+        loadFromGroupByData(resultTable, orderedGroupBy, finalGroupedData, operandColumn);
+[if (aModel.logs)]
+
+        Logger.log(Logger.LogLevel.INFO, "GroupByStepDefault success.");
+
+[/if]
+        return resultTable;
+    }
+
+    private static Object sumValues(List<Object> values) {
+        if (allIntegers(values)) {
+            return values.stream().mapToInt(e -> (Integer) e).sum();
+        } else {
+            return values.stream().mapToDouble(GroupByStepDefault::toDouble).sum();
+        }
+    }
+
+    private static Object maxValues(List<Object> values) {
+        if (allIntegers(values)) {
+            return values.stream().mapToInt(e -> (Integer) e).max().orElse(Integer.MIN_VALUE);
+        } else {
+            return values.stream().mapToDouble(GroupByStepDefault::toDouble).max().orElse(Double.MIN_VALUE);
+        }
+    }
+
+    private static Object minValues(List<Object> values) {
+        if (allIntegers(values)) {
+            return values.stream().mapToInt(e -> (Integer) e).min().orElse(Integer.MAX_VALUE);
+        } else {
+            return values.stream().mapToDouble(GroupByStepDefault::toDouble).min().orElse(Double.MAX_VALUE);
+        }
+    }
+
+    private static Object avgValues(List<Object> values) {
+        double sum = values.stream().mapToDouble(GroupByStepDefault::toDouble).sum();
+        double avg = sum / values.size();
+        double rounded = BigDecimal.valueOf(avg).setScale(2, RoundingMode.HALF_UP).doubleValue();
+        if (allIntegers(values) && rounded == Math.floor(rounded)) {
+            return (int) rounded;
+        } else {
+            return rounded;
+        }
+    }
+
+    private static double toDouble(Object e) {
+        if (e instanceof Integer) {
+            return ((Integer) e).doubleValue();
+        } else if (e instanceof Double) {
+            return (Double) e;
+        } else {
+[if (aModel.logs)]
+            Logger.log(Logger.LogLevel.ERROR, "Error in GroupByStepDefault: unsupported number type.");
+[/if]
+            throw new IllegalArgumentException("Unsupported number type");
+        }
+    }
+
+    private void loadFromGroupByData(Table resultTable, List<Column> groupByList, Map<List<Object>, Object> data, Column operandColumn) {
+        for (Column column : resultTable.getColumnList()) {
+
+            int indexColumnListReceived = groupByList.indexOf(column);
+            if (indexColumnListReceived == -1 || column.equals(operandColumn)) {
+                continue;
+            }
+
+            Map<Integer, Object> columnLineInfo = new HashMap<>();
+
+            int lineCounter = 1;
+            for (List<Object> key : data.keySet()) {
+                String valueToString = key.get(indexColumnListReceived).toString();
+                Object value = EnumUtils.parseValue(valueToString, column.type());
+
+                columnLineInfo.put(lineCounter++, value);
+            }
+
+            resultTable.getColumnInfo().put(column, columnLineInfo);
+        }
+
+        Map<Integer, Object> columnLineInfo = new HashMap<>();
+        int lineCounter = 1;
+        for (Object key : data.values()) {
+            Object value = EnumUtils.parseValue(key.toString(), operandColumn.type());
+            columnLineInfo.put(lineCounter++, value);
+        }
+
+        Column referencedExistingColumn = resultTable.getColumnList().stream().filter(c -> c.equals(operandColumn)).findFirst().get();
+        resultTable.getColumnInfo().put(referencedExistingColumn, columnLineInfo);
+    }
+}
+
+[/file]
+[/template]
+
+[template private generateFactoryGroupByStep(aModel : Model)]
+[file ('org/enorm/domain/steps/groupByStep/FactoryGroupByStep.java', false, 'UTF-8')]
+package org.enorm.domain.steps.groupByStep;
+
+public class FactoryGroupByStep {
+    private static IGroupByStep step;
+
+    public static void setStep(IGroupByStep s) {
+        step = s;
+    }
+
+    public static IGroupByStep getStep() {
+        return step;
+    }
+}
+
+[/file]
+[/template]
+
+[template private generateIGroupByStep(aModel : Model)]
+[file ('org/enorm/domain/steps/groupByStep/IGroupByStep.java', false, 'UTF-8')]
+package org.enorm.domain.steps.groupByStep;
+
+import org.enorm.domain.enums.GroupByOperationType;
+import org.enorm.domain.tables.Column;
+import org.enorm.domain.tables.Table;
+import org.enorm.domain.tables.factories.FactoryTable;
+
+import java.util.List;
+
+public interface IGroupByStep {
+    Table apply(Table inputTable, List<Column> groupBy, Column operandColumn, GroupByOperationType operation, FactoryTable factoryTable);
+}
+
+[/file]
+[/template]

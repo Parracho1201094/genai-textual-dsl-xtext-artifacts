@@ -1,0 +1,260 @@
+Model Invoicing {
+	logs true
+	tables {
+		Table Clients {
+			columns {
+				Column id_client {
+					dataType NUMBER
+				},
+				Column name_client {
+					dataType TEXT
+				},
+				Column nif {
+					dataType TEXT
+				}
+			}
+		},
+		Table Products {
+			columns {
+				Column id_product {
+					dataType NUMBER
+				},
+				Column name_product {
+					dataType TEXT
+				},
+				Column price {
+					dataType NUMBER
+				}
+			}
+		},
+		Table Sales {
+			columns {
+				Column id_sale {
+					dataType NUMBER
+				},
+				Column id_client {
+					dataType NUMBER
+				},
+				Column id_product {
+					dataType NUMBER
+				},
+				Column quantity {
+					dataType NUMBER
+				}
+			}
+		},
+		Table SalesGroupedByClientProductWithQuantity {
+			columns {
+				Column id_sale {
+					dataType NUMBER
+				},
+				Column id_client {
+					dataType NUMBER
+				},
+				Column id_product {
+					dataType NUMBER
+				},
+				Column quantity {
+					dataType NUMBER
+				}
+			}
+		},
+		Table SalesWithPrice {
+			columns {
+				Column id_sale {
+					dataType NUMBER
+				},
+				Column id_client {
+					dataType NUMBER
+				},
+				Column id_product {
+					dataType NUMBER
+				},
+				Column quantity {
+					dataType NUMBER
+				},
+				Column price {
+					dataType NUMBER
+				}
+			}
+		},
+		Table SalesWithTotal {
+			columns {
+				Column id_sale {
+					dataType NUMBER
+				},
+				Column id_client {
+					dataType NUMBER
+				},
+				Column id_product {
+					dataType NUMBER
+				},
+				Column quantity {
+					dataType NUMBER
+				},
+				Column price {
+					dataType NUMBER
+				},
+				Column total {
+					dataType NUMBER
+				}
+			}
+		},
+		Table GroupedByIdClientSumTotal {
+			columns {
+				Column id_client {
+					dataType NUMBER
+				},
+				Column total {
+					dataType NUMBER
+				}
+			}
+		},
+		Table Final {
+			columns {
+				Column id_client {
+					dataType NUMBER
+				},
+				Column name_client {
+					dataType TEXT
+				},
+				Column nif {
+					dataType TEXT
+				},
+				Column total {
+					dataType NUMBER
+				}
+			}
+		}
+	}
+	steps {
+		Import LoadTables {
+			tablesToImport {
+				deleteMismatchedTypes false
+				TableToImport {
+					path "/clients.csv"
+					delimiter ","
+					table Clients 
+				},
+				deleteMismatchedTypes false
+				TableToImport {
+					path "/products.csv"
+					delimiter ","
+					table Products 
+				},
+				deleteMismatchedTypes false
+				TableToImport {
+					path "/sales.csv"
+					delimiter ","
+					table Sales 
+				}
+			}
+			next RemoveDuplicatesBySalesId
+		},
+		RemoveDuplicates RemoveDuplicatesBySalesId {
+			table Sales
+			column "Sales.id_sale"
+			next FilterQuantitiesHigherThan10
+		}, 
+		Filter FilterQuantitiesHigherThan10 {
+			table Sales
+			column "Sales.quantity"
+			operator GREATER_THAN
+			operand "10"
+			next GroupByClientAndSumQuantity
+		},
+		Group GroupByClientAndSumQuantity {
+			table Sales 
+			groupBy ("Sales.id_sale", "Sales.id_product")
+			operation SUM
+			operandColumn "Sales.quantity"
+			resultTable SalesGroupedByClientProductWithQuantity
+			resultColumn "SalesGroupedByClientProductWithQuantity.quantity"
+			next JoinGroupedWithPrice
+		},
+		Join JoinGroupedWithPrice {
+			tableLeft Products
+			columnLeft "Products.id_product"
+			type INNER
+			tableRight SalesGroupedByClientProductWithQuantity
+			columnRight "SalesGroupedByClientProductWithQuantity.id_product"
+			selectColumns (
+				"SalesGroupedByClientProductWithQuantity.id_sale", 
+				"SalesGroupedByClientProductWithQuantity.id_client", 
+				"SalesGroupedByClientProductWithQuantity.id_product", 
+				"SalesGroupedByClientProductWithQuantity.quantity", 
+				"Products.price")
+			resultTable SalesWithPrice
+			next ParseToTotalSchema
+		},
+		AppendRows ParseToTotalSchema {
+			originTable SalesWithPrice
+			destinTable SalesWithTotal
+			associations {
+				Association {
+					originCol "SalesWithPrice.id_sale"
+					destinCol "SalesWithTotal.id_sale"
+				},
+				Association {
+					originCol "SalesWithPrice.id_client"
+					destinCol "SalesWithTotal.id_client"
+				},
+				Association {
+					originCol "SalesWithPrice.id_product"
+					destinCol "SalesWithTotal.id_product"
+				},
+				Association {
+					originCol "SalesWithPrice.quantity"
+					destinCol "SalesWithTotal.quantity"
+				},
+				Association {
+					originCol "SalesWithPrice.price"
+					destinCol "SalesWithTotal.id_sale"
+				}
+			}
+			next GetTheTotal
+		},
+		Lookup GetTheTotal {
+			table SalesWithTotal
+			column "SalesWithTotal.id_sale"
+			lookupTable SalesWithTotal
+			matchColumn "SalesWithTotal.id_sale"
+			operandColumn "SalesWithTotal.quantity"
+			lookupColumn "SalesWithTotal.price"
+			operation NUMERIC_MULTIPLY
+			resultTable SalesWithTotal 
+			resultColumn "SalesWithTotal.total"
+			next GroupsTheSumQuantityToPay
+		},
+		Group GroupsTheSumQuantityToPay {
+			table SalesWithTotal		
+			groupBy ("SalesWithTotal.id_client")
+			operation SUM
+			operandColumn "SalesWithTotal.quantity"
+			resultTable GroupedByIdClientSumTotal
+			resultColumn "GroupedByIdClientSumTotal.total"
+			next JoinIntoClientToFinalize
+		},
+		Join JoinIntoClientToFinalize {
+			tableLeft GroupedByIdClientSumTotal
+			columnLeft "GroupedByIdClientSumTotal.id_client"
+			type INNER
+			tableRight Clients
+			columnRight "Clients.id_client"
+			selectColumns ("Clients.id_client", "Clients.name_client", "Clients.nif", "GroupedByIdClientSumTotal.total")
+			resultTable Final
+			next SaveFinalTable
+		},
+		Save SaveFinalTable { 
+			tablesToSave { 
+				TableToSave { 
+					path "/.output-invoicing.csv" 
+					table Final 
+					columnsNames { 
+						id_client , name_client , nif, total 
+					}
+				} 
+			}
+		} 
+	} 
+}

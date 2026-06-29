@@ -1,0 +1,186 @@
+Model Grading {
+	logs true
+	tables {
+		Table Students {
+			columns {
+				Column id_student {
+					dataType NUMBER
+				},
+				Column first_name {
+					dataType TEXT
+				},
+				Column last_name {
+					dataType TEXT
+				}
+			}
+		},
+		Table Courses {
+			columns {
+				Column id_course {
+					dataType NUMBER
+				},
+				Column name_course {
+					dataType TEXT
+				},
+				Column id_student {
+					dataType NUMBER
+				}
+			}
+		},
+		Table Grades {
+			columns {
+				Column id_grade {
+					dataType NUMBER
+				},
+				Column id_course {
+					dataType NUMBER
+				},
+				Column id_student {
+					dataType NUMBER
+				},
+				Column grade {
+					dataType NUMBER
+				}
+			}
+		},
+		Table GradesAverage {
+			columns {
+				Column id_student {
+					dataType NUMBER
+				},
+				Column id_course {
+					dataType NUMBER
+				},
+				Column avg_grade {
+					dataType NUMBER
+				}
+			}
+		},
+		Table GradesAverageJoinCourses {
+			columns {
+				Column id_student {
+					dataType NUMBER
+				},
+				Column id_course {
+					dataType NUMBER
+				},
+				Column avg_grade {
+					dataType NUMBER
+				},
+				Column name_course {
+					dataType TEXT
+				}
+			}
+		},
+		Table Final {
+			columns {
+				Column id_student {
+					dataType NUMBER
+				},
+				Column id_course {
+					dataType NUMBER
+				},
+				Column avg_grade {
+					dataType NUMBER
+				},
+				Column name_course {
+					dataType TEXT
+				},
+				Column name_student {
+					dataType TEXT
+				}
+			}
+		}
+	}
+	steps {
+		Import LoadTables {
+			tablesToImport {
+				deleteMismatchedTypes true
+				TableToImport {
+					path "./students.csv"
+					delimiter ","
+					table Students
+				},
+				deleteMismatchedTypes true
+				TableToImport {
+					path "./courses.csv"
+					delimiter ","
+					table Courses
+				},
+				deleteMismatchedTypes true
+				TableToImport {
+					path "./grades.csv"
+					delimiter ","
+					table Grades
+				}
+			}
+			next RemoveDuplicatedGradeIds
+		}, 
+		RemoveDuplicates RemoveDuplicatedGradeIds {
+			table Grades
+			column "Grades.id_grade"
+			next GroupStudentsToGetAVGNotes
+		},
+		Group GroupStudentsToGetAVGNotes {
+			table Grades
+			groupBy ("Grades.id_student")
+			operation AVERAGE
+			operandColumn "Grades.id_grade"
+			resultTable GradesAverage
+			resultColumn "GradesAverage.avg_grade"
+			next JoinWithCoursesToGetName
+		},
+		Join JoinWithCoursesToGetName {
+			tableLeft GradesAverage 
+			columnLeft "GradesAverage.id_course"
+			type INNER
+			tableRight Courses
+			columnRight "Courses.id_course"
+			selectColumns ("GradesAverage.id_student", "GradesAverage.id_course", "GradesAverage.avg_grade", "Courses.name_course")
+			resultTable GradesAverageJoinCourses
+			next CreateFinalTable
+		},
+		AppendRows CreateFinalTable {
+			originTable GradesAverageJoinCourses
+			destinTable Final
+			associations {
+				Association {
+					originCol "GradesAverageJoinCourses.id_student"
+					destinCol "Final.id_student"
+				},
+				Association {
+					originCol "GradesAverageJoinCourses.id_course"
+					destinCol "Final.id_course"
+				},
+				Association {
+					originCol "GradesAverageJoinCourses.avg_grade"
+					destinCol "Final.avg_grade"
+				},
+				Association {
+					originCol "GradesAverageJoinCourses.name_course"
+					destinCol "Final.name_course"
+				}
+			}
+			next ConcatFirstAndLastStudentNames
+		},
+		Concat ConcatFirstAndLastStudentNames {
+			table Students
+			sourceA "Students.first_name"
+			sourceB "Students.last_name"
+			resultColumn "Final.name_student"
+			resultTable Final
+			next SaveFinalTable
+		},
+		Save SaveFinalTable { 
+			tablesToSave { 
+				TableToSave { 
+					path "./output-grading.csv" 
+					table Final 
+					columnsNames { 
+						id_student, id_course, avg_grade, name_course, name_student
+					}
+				}
+			}
+		} 
+	} 
+}

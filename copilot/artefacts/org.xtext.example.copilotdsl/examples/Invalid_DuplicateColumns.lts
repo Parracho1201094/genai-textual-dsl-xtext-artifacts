@@ -1,0 +1,28 @@
+/*
+ * Invalid Example 3: Duplicate Column Definition
+ * Error: Table has duplicate column names
+ */
+process InvalidDuplicateColumnsExample {
+	csv source employees from "employees.csv" {
+		id: Integer,
+		name: String,
+		salary: Decimal
+	}
+	
+	table employees_copy {
+		id: Integer,
+		// ERROR: Column 'id' already defined above
+		id: String,
+		name: String,
+		salary: Decimal
+	}
+	
+	operations {
+		load employees_copy from employees;
+	}
+	
+	output {
+		save employees_copy to "output.csv";
+		save log to "log.txt";
+	}
+}

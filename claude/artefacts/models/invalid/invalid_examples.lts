@@ -1,0 +1,261 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE: invalid_examples.lts
+//
+// A collection of intentionally broken LTS snippets.
+// Each block shows one validation error and the expected error message.
+// These are NOT meant to be parsed as a single file; each section is an
+// independent broken model for testing / documentation purposes.
+// ─────────────────────────────────────────────────────────────────────────────
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ERROR 1: Duplicate process name (if two Process elements share a name in
+//          the same workspace, the generator cannot produce unambiguous output)
+// Expected: "Duplicate process name 'SalaryProcess'."
+// ═══════════════════════════════════════════════════════════════════════════
+
+process SalaryProcess description: "First definition" {
+    datasource src1 type CSV { path: "a.csv" hasHeader: true }
+    table t1 from src1 { id: Integer }
+    log L to "log.txt"
+    load t1
+    save L
+}
+
+// A second file (or the same file in a pathological case) re-declares the name:
+/*
+process SalaryProcess description: "Duplicate!" {   // <── ERROR 1
+    ...
+}
+*/
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ERROR 2: Unknown column in SortStep
+// Expected: "Column 'unknownColumn' does not exist in table 'employee'."
+// ═══════════════════════════════════════════════════════════════════════════
+
+process ErrorSortUnknownColumn {
+    datasource src type CSV { path: "employee.csv" hasHeader: true }
+    table employee from src {
+        id   : Integer
+        name : String
+    }
+    log L to "log.txt"
+
+    load employee
+    sort employee by unknownColumn ASC   // <── ERROR 2: 'unknownColumn' not in schema
+    save L
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ERROR 3: SaveStep references a table that has never been loaded
+// Expected: "Table 'payments' must be loaded before it can be saved."
+// ═══════════════════════════════════════════════════════════════════════════
+
+process ErrorSaveWithoutLoad {
+    datasource src type CSV { path: "data.csv" hasHeader: true }
+    datasource out type CSV { path: "payments.csv" hasHeader: true }
+    table inputTable from src { id: Integer }
+    output table payments to out { id: Integer amount: Decimal }
+    log L to "log.txt"
+
+    load inputTable
+    // Forgot to load / populate payments
+    save payments   // <── ERROR 3: 'payments' was never loaded or written to
+    save L
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ERROR 4: Join on type-incompatible key columns
+// Expected: "Join key columns 'employeeId' (Integer) and 'empCode' (String)
+//            are not type-compatible."
+// ═══════════════════════════════════════════════════════════════════════════
+
+process ErrorJoinTypeMismatch {
+    datasource emp type CSV { path: "employee.csv"    hasHeader: true }
+    datasource hrs type CSV { path: "workedHours.csv" hasHeader: true }
+
+    table employee from emp {
+        employeeId : Integer    // <── key is Integer
+        name       : String
+    }
+    table workedHours from hrs {
+        empCode    : String     // <── key is String — type mismatch!
+        hours      : Decimal
+    }
+    log L to "log.txt"
+
+    load employee
+    load workedHours
+    join employee with workedHours on employeeId = empCode  // <── ERROR 4
+    save L
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ERROR 5: CalculateColumnStep references a column that does not exist
+// Expected: "Column 'bonus' does not exist in table 'payments'."
+// ═══════════════════════════════════════════════════════════════════════════
+
+process ErrorCalculateUnknownColumn {
+    datasource src type CSV { path: "payments.csv" hasHeader: true }
+    datasource out type CSV { path: "out.csv"      hasHeader: true }
+
+    table payments from src {
+        employeeId : Integer
+        payment    : Decimal
+    }
+    output table result to out {
+        employeeId : Integer
+        payment    : Decimal
+    }
+    log L to "log.txt"
+
+    load payments
+    calculate bonus = payment * 0.1 in payments   // <── ERROR 5: 'bonus' not declared
+    append payments to result
+    save result
+    save L
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ERROR 6: Process has no LOAD step
+// Expected: "Process 'EmptyProcess' has no load steps. At least one table
+//            must be loaded."
+// ═══════════════════════════════════════════════════════════════════════════
+
+process EmptyProcess {
+    datasource src type CSV { path: "data.csv" hasHeader: true }
+    datasource out type CSV { path: "output.csv" hasHeader: true }
+    table data from src { id: Integer }
+    output table result to out { id: Integer }
+    log L to "log.txt"
+
+    // ERROR 6: No load step – the user forgot to load any table
+    save result
+    save L
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ERROR 7: GroupStep result table column missing the aggregation output
+// Expected: "Result table 'summary' must contain a column for the aggregated
+//            value 'totalHours'."
+// ═══════════════════════════════════════════════════════════════════════════
+
+process ErrorGroupMissingResultColumn {
+    datasource src type CSV { path: "hours.csv" hasHeader: true }
+
+    table workedHours from src {
+        employeeId : Integer
+        hours      : Decimal
+    }
+    // 'summary' table is missing the aggregated column 'totalHours'
+    create table summary {
+        employeeId : Integer
+        // totalHours column is not present  <── ERROR 7
+    }
+    log L to "log.txt"
+
+    load workedHours
+    group workedHours by employeeId
+        aggregating hours using SUM
+        into summary           // 'summary' has no column to hold the SUM result
+    save L
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ERROR 8: CopyStep schema incompatibility – source has column absent in target
+// Expected: "Source table 'employee' has column 'categoryId' (Integer) which
+//            is not present in target table 'minimalPayments'."
+// ═══════════════════════════════════════════════════════════════════════════
+
+process ErrorCopySchemaIncompatible {
+    datasource src type CSV { path: "employee.csv" hasHeader: true }
+    datasource out type CSV { path: "minimal.csv"  hasHeader: true }
+
+    table employee from src {
+        id         : Integer
+        name       : String
+        categoryId : Integer   // <── this column is missing from the target
+    }
+    output table minimalPayments to out {
+        id   : Integer
+        name : String
+        // categoryId column deliberately omitted  <── ERROR 8
+    }
+    log L to "log.txt"
+
+    load employee
+    copy employee into minimalPayments   // schema mismatch
+    save minimalPayments
+    save L
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ERROR 9: DivisionByZero risk – dividing by a column that could be zero
+//          (static warning, not a hard error in all tools but useful)
+// Expected: WARNING "Expression 'totalCredits' used as divisor may be zero."
+// ═══════════════════════════════════════════════════════════════════════════
+
+process WarningDivisionByZeroRisk {
+    datasource src type CSV { path: "grades.csv" hasHeader: true }
+    datasource out type CSV { path: "result.csv" hasHeader: true }
+
+    table gradeSummary from src {
+        studentId          : Integer
+        totalWeightedScore : Decimal
+        totalCredits       : Decimal
+        finalGrade         : Decimal
+    }
+    output table result to out {
+        studentId  : Integer
+        finalGrade : Decimal
+    }
+    log L to "log.txt"
+
+    load gradeSummary
+    calculate finalGrade = totalWeightedScore / totalCredits in gradeSummary
+    //                                          ^^^^^^^^^^^^
+    //  WARNING 9: 'totalCredits' may be zero for students with no exams
+    append gradeSummary to result
+    save result
+    save L
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ERROR 10: RemoveColumnsStep removes a column that is used in a later step
+// Expected: "Column 'hourValue' was dropped from 'payments' at step 8
+//            but is referenced in step 9 (calculate payment)."
+// ═══════════════════════════════════════════════════════════════════════════
+
+process ErrorDropBeforeUse {
+    datasource src type CSV { path: "payments.csv" hasHeader: true }
+    datasource out type CSV { path: "result.csv"   hasHeader: true }
+
+    table payments from src {
+        employeeId : Integer
+        totalHours : Decimal
+        hourValue  : Decimal
+        payment    : Decimal
+    }
+    output table result to out {
+        employeeId : Integer
+        payment    : Decimal
+    }
+    log L to "log.txt"
+
+    load payments
+    drop columns hourValue from payments      // <── ERROR 10: drop BEFORE use
+    calculate payment = totalHours * hourValue in payments  // hourValue was dropped!
+    append payments to result
+    save result
+    save L
+}

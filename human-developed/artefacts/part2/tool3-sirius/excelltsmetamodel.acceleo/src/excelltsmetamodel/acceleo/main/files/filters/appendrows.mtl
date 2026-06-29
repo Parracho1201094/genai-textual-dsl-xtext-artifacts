@@ -1,0 +1,89 @@
+[comment encoding = UTF-8 /]
+[module appendrows('http://www.example.org/excelltsmetamodel')]
+
+[template public generateStepsAppendRow(aModel : Model)]
+
+[aModel.generateAppendRowsStepDefault(aModel)/]
+[aModel.generateFactoryAppendRowsStep(aModel)/]
+[aModel.generateIAppendRowsStep(aModel)/]
+
+[/template]
+
+
+[template private generateAppendRowsStepDefault(aModel : Model)]
+[file ('org/enorm/domain/steps/appendRowsStep/AppendRowsStepDefault.java', false, 'UTF-8')]
+package org.enorm.domain.steps.appendRowsStep;
+
+[if (aModel.logs)]
+import org.enorm.Logger;
+[/if]
+import org.enorm.domain.tables.Column;
+import org.enorm.domain.tables.Table;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class AppendRowsStepDefault implements IAppendRowsStep {
+
+    @Override
+    public void apply(Table from, Table to, Map<Column, Column> columnsMapping) {
+
+        var appendAfterLine = to.getNumLines();
+
+        for (var mapping : columnsMapping.entrySet()) {
+            var sourceCells = from.getColumnInfo().get(mapping.getKey());
+            var sourceLines = sourceCells.keySet().stream().toList();
+            var sourceCellsTransformed = new HashMap<Integer, Object>();
+
+            for (var sourceLine : sourceLines) {
+                sourceCellsTransformed.put(appendAfterLine + sourceLine, sourceCells.get(sourceLine));
+            }
+
+            var destCells = to.getColumnInfo().get(mapping.getValue());
+            destCells.putAll(sourceCellsTransformed);
+        }
+[if (aModel.logs)]
+        Logger.log(Logger.LogLevel.INFO, "AppendRowsStepDefault success.");
+[/if]
+    }
+}
+
+[/file]
+[/template]
+
+[template private generateFactoryAppendRowsStep(aModel : Model)]
+[file ('org/enorm/domain/steps/appendRowsStep/FactoryAppendRowsStep.java', false, 'UTF-8')]
+package org.enorm.domain.steps.appendRowsStep;
+
+public class FactoryAppendRowsStep {
+    private static IAppendRowsStep step;
+
+    public static void setStep(IAppendRowsStep s) {
+        step = s;
+    }
+
+    public static IAppendRowsStep getStep() {
+        return step;
+    }
+}
+
+
+[/file]
+[/template]
+
+
+[template private generateIAppendRowsStep(aModel : Model)]
+[file ('org/enorm/domain/steps/appendRowsStep/IAppendRowsStep.java', false, 'UTF-8')]
+package org.enorm.domain.steps.appendRowsStep;
+
+import org.enorm.domain.tables.Column;
+import org.enorm.domain.tables.Table;
+
+import java.util.Map;
+
+public interface IAppendRowsStep {
+    void apply(Table from, Table to, Map<Column, Column> columnsMapping);
+}
+
+[/file]
+[/template]

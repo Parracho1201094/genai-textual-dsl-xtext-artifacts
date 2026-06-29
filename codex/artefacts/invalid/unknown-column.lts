@@ -1,0 +1,22 @@
+process UnknownColumn {
+    input employees from csv "employees.csv" {
+        employeeId: integer required;
+        salary: decimal;
+    }
+    table result {
+        employeeId: integer;
+    }
+    output resultCsv table result to csv "result.csv";
+    log processLog to "result.log" levels errors;
+
+    steps {
+        load employees;
+        create empty result;
+        append rows from employees to result map {
+            // ERROR LTS_UNKNOWN_COLUMN: employees.employeeNumber does not exist.
+            result.employeeId = employees.employeeNumber;
+        };
+        save result to resultCsv;
+        save log processLog;
+    }
+}

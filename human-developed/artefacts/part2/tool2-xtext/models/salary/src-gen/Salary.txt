@@ -1,0 +1,59 @@
+Salary:
+ tables:
+  Employees:
+   id_employee as NUMBER
+   name_employee as TEXT
+   id_category as NUMBER
+  Categories:
+   id_category as NUMBER
+   name_category as TEXT
+   value_worked_hours as NUMBER
+  WorkedHours:
+   id_employee as NUMBER
+   date as DATE
+   worked_hours as NUMBER
+  EmployeeJoinCategory:
+   id_employee as NUMBER
+   name_employee as TEXT
+   id_category as NUMBER
+   name_category as TEXT
+   value_worked_hours as NUMBER
+  SumWorkedHours:
+   id_employee as NUMBER
+   worked_hours as NUMBER
+  EmployeeJoinCategoryJoinSumWorkedHours:
+   id_employee as NUMBER
+   name_employee as TEXT
+   id_category as NUMBER
+   name_category as TEXT
+   value_worked_hours as NUMBER
+   worked_hours as NUMBER
+  Payments:
+   id_employee as NUMBER
+   name_employee as TEXT
+   id_category as NUMBER
+   name_category as TEXT
+   value_worked_hours as NUMBER
+   total_worked_hours as NUMBER
+   payment as NUMBER
+  PaymentsFinal:
+   id_employee as NUMBER
+   name_employee as TEXT
+   id_category as NUMBER
+   name_category as TEXT
+   payment as NUMBER
+ steps:
+  IMPORT:
+   IMPORT FROM "/employees.csv" TO Employees WITH DELIMITER "," AND DELETE_MISTMATCHED_TYPES AS false
+   IMPORT FROM "/categories.csv" TO Categories WITH DELIMITER "," AND DELETE_MISTMATCHED_TYPES AS false
+   IMPORT FROM "/workedhours.csv" TO WorkedHours WITH DELIMITER "," AND DELETE_MISTMATCHED_TYPES AS false
+  SORT Employees BY id_employee WITH DESC ORDER
+  REMOVE DUPLICATES FROM Employees(id_employee)
+  INNER JOIN Employees(id_category) WITH Categories(id_category) INTO EmployeeJoinCategory(id_employee, name_employee, id_category, name_category, value_worked_hours)
+  GROUP WorkedHours BY (id_employee) AND PUT SUM(worked_hours) INTO SumWorkedHours(worked_hours)
+  INNER JOIN EmployeeJoinCategory(id_employee) WITH SumWorkedHours(id_employee) INTO EmployeeJoinCategoryJoinSumWorkedHours(id_employee, id_category, name_employee, name_category, value_worked_hours, worked_hours)
+  APPEND ROWS FROM EmployeeJoinCategoryJoinSumWorkedHours(id_employee, name_employee, id_category, name_category, value_worked_hours, worked_hours) TO Payments (id_employee, name_employee, id_category, name_category, value_worked_hours, total_worked_hours, payment)
+  LOOKUP FROM Payments(id_employee) TO Payments(id_employee) AND PUT NUMERIC_MULTIPLY(Payments(value_worked_hours), Payments(total_worked_hours)) INTO Payments(payment)
+  APPEND ROWS FROM Payments(id_employee, name_employee, id_category, name_category, value_worked_hours, total_worked_hours, payment) TO PaymentsFinal (id_employee, name_employee, id_category, name_category, payment)
+  SAVE:
+   SAVE PaymentsFinal(id_employee, name_employee, id_category, name_category, payment) TO "output-salary"

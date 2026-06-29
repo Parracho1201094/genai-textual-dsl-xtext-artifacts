@@ -1,0 +1,94 @@
+[comment encoding = UTF-8 /]
+[module removeduplicates('http://www.example.org/excelltsmetamodel')]
+
+[template public generateStepsRemoveDuplicatesStep(aModel : Model)]
+[aModel.generateFactoryRemoveDuplicatesStep(aModel)/]
+[aModel.generateIRemoveDuplicatesStep(aModel)/]
+[aModel.generateRemoveDuplicatesStepDefault(aModel)/]
+[/template]
+
+[template private generateFactoryRemoveDuplicatesStep(aModel : Model)]
+[file ('org/enorm/domain/steps/removeDuplicatesStep/FactoryRemoveDuplicatesStep.java', false, 'UTF-8')]
+package org.enorm.domain.steps.removeDuplicatesStep;
+
+public class FactoryRemoveDuplicatesStep {
+    private static IRemoveDuplicatesStep step;
+
+    public static void setStep(IRemoveDuplicatesStep s) {
+        step = s;
+    }
+
+    public static IRemoveDuplicatesStep getStep() {
+        return step;
+    }
+}
+
+[/file]
+[/template]
+
+[template private generateIRemoveDuplicatesStep(aModel : Model)]
+[file ('org/enorm/domain/steps/removeDuplicatesStep/IRemoveDuplicatesStep.java', false, 'UTF-8')]
+package org.enorm.domain.steps.removeDuplicatesStep;
+
+import org.enorm.domain.tables.Column;
+import org.enorm.domain.tables.Table;
+import org.enorm.domain.tables.factories.FactoryTable;
+
+public interface IRemoveDuplicatesStep {
+    Table apply(Table inputTable, Column targetColumn, FactoryTable factoryTable);
+}
+
+[/file]
+[/template]
+
+[template private generateRemoveDuplicatesStepDefault(aModel : Model)]
+[file ('org/enorm/domain/steps/removeDuplicatesStep/RemoveDuplicatesStepDefault.java', false, 'UTF-8')]
+package org.enorm.domain.steps.removeDuplicatesStep;
+
+import org.enorm.domain.tables.Column;
+import org.enorm.domain.tables.Table;
+import org.enorm.domain.tables.factories.FactoryTable;
+[if (aModel.logs)]
+import org.enorm.Logger;
+[/if]
+
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+public class RemoveDuplicatesStepDefault implements IRemoveDuplicatesStep {
+    @Override
+    public Table apply(Table inputTable, Column targetColumn, FactoryTable factoryTable) {
+
+        Set<Object> valuesTrackingSet = new HashSet<>();
+        Table resultTable = factoryTable.generateTable();
+        int newLineCounter = 1;
+
+        // For all lines in the table
+        for (int lineIndex = 1; lineIndex <= inputTable.getNumLines(); lineIndex++) {
+
+            // Maps <Column, Value> to this specific line that we are iterating
+            Map<Column, Object> lineInfo = inputTable.getLineInfo(lineIndex);
+
+            if (valuesTrackingSet.contains(lineInfo.get(targetColumn))) {
+                continue;
+            }
+
+            // Adds the data to the column
+            for (Column column : lineInfo.keySet()) {
+                Object value = lineInfo.get(column);
+                resultTable.getColumnInfo().get(column).put(newLineCounter, value);
+            }
+
+            valuesTrackingSet.add(lineInfo.get(targetColumn));
+            newLineCounter++;
+        }
+[if (aModel.logs)]
+	 	Logger.log(Logger.LogLevel.INFO, "RemoveDuplicatesStepDefault success.");
+[/if]
+        return resultTable;
+    }
+}
+
+[/file]
+[/template]

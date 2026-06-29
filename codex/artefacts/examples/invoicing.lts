@@ -1,0 +1,75 @@
+process Invoicing {
+    input clients from csv "data/clients.csv" header true {
+        clientId: integer required;
+        clientName: string required;
+    }
+
+    input products from csv "data/products.csv" header true {
+        productId: integer required;
+        unitPrice: decimal required;
+    }
+
+    input sales from csv "data/sales.csv" header true {
+        clientId: integer required;
+        productId: integer required;
+        quantity: decimal required;
+    }
+
+    table saleLines {
+        clientId: integer required;
+        clientName: string;
+        productId: integer required;
+        quantity: decimal required;
+        unitPrice: decimal;
+        lineTotal: decimal;
+    }
+
+    table invoices {
+        clientId: integer required;
+        clientName: string required;
+        totalToInvoice: decimal required;
+    }
+
+    output invoicesCsv table invoices to csv "out/invoices.csv" header true;
+    log processLog to "out/invoicing.log" levels warnings, errors;
+
+    steps {
+        load clients;
+        load products;
+        load sales;
+
+        create empty saleLines;
+        append rows from sales to saleLines map {
+            saleLines.clientId = sales.clientId;
+            saleLines.productId = sales.productId;
+            saleLines.quantity = sales.quantity;
+        };
+
+        join saleLines left with products
+            on saleLines.productId = products.productId
+            select {
+                saleLines.unitPrice = products.unitPrice;
+            };
+
+        join saleLines left with clients
+            on saleLines.clientId = clients.clientId
+            select {
+                saleLines.clientName = clients.clientName;
+            };
+
+        calculate column saleLines.lineTotal =
+            saleLines.quantity * saleLines.unitPrice;
+
+        create empty invoices;
+        group saleLines into invoices
+            by saleLines.clientId, saleLines.clientName
+            aggregate {
+                invoices.clientId = first(saleLines.clientId);
+                invoices.clientName = first(saleLines.clientName);
+                invoices.totalToInvoice = sum(saleLines.lineTotal);
+            };
+
+        save invoices to invoicesCsv;
+        save log processLog;
+    }
+}

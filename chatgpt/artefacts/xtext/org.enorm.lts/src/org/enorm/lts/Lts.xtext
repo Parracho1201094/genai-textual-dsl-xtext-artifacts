@@ -1,0 +1,229 @@
+grammar org.enorm.lts.Lts with org.eclipse.xtext.common.Terminals
+
+generate lts "http://www.enorm.org/lts"
+
+Process:
+    'process' name=ID '{'
+        statements+=Statement*
+    '}'
+;
+
+Statement:
+      TableProducingStatement
+    | TableChangingStatement
+    | SaveStatement
+    | SaveLogStatement
+;
+
+TableProducingStatement:
+      LoadStatement
+    | CreateStatement
+    | AggregateStatement
+;
+
+TableChangingStatement:
+      SortStatement
+    | FilterStatement
+    | RemoveDuplicatesStatement
+    | CopyStatement
+    | JoinStatement
+    | SetColumnStatement
+    | DropColumnsStatement
+;
+
+LoadStatement:
+    'load' name=ID 'from' source=DataSource
+    'header' header=BOOLEAN
+    ('delimiter' delimiter=STRING)?
+    'columns' '{' columns+=ColumnDef+ '}'
+;
+
+CreateStatement:
+    'create' name=ID
+    'columns' '{' columns+=ColumnDef+ '}'
+;
+
+DataSource:
+    CsvSource
+;
+
+CsvSource:
+    'csv' path=STRING
+;
+
+ColumnDef:
+    name=ID ':' type=Type
+    ('from' sourceHeader=STRING)?
+;
+
+enum Type:
+      INT='int'
+    | DECIMAL='decimal'
+    | STRING='string'
+    | DATE='date'
+    | BOOLEAN='boolean'
+;
+
+SortStatement:
+    'sort' table=[TableProducingStatement|ID]
+    'by' keys+=SortKey (',' keys+=SortKey)*
+;
+
+SortKey:
+    column=ID direction=SortDirection?
+;
+
+enum SortDirection:
+      ASC='asc'
+    | DESC='desc'
+;
+
+FilterStatement:
+    'filter' table=[TableProducingStatement|ID]
+    'where' condition=Expression
+;
+
+RemoveDuplicatesStatement:
+    'remove' 'duplicates' 'from' table=[TableProducingStatement|ID]
+    'by' columns+=ID (',' columns+=ID)*
+;
+
+CopyStatement:
+    'copy' source=[TableProducingStatement|ID]
+    'to' target=[TableProducingStatement|ID]
+    ('map' '{' mappings+=ColumnMapping+ '}')?
+;
+
+ColumnMapping:
+    source=ID '->' target=ID
+;
+
+JoinStatement:
+    'join' target=[TableProducingStatement|ID]
+    'with' source=[TableProducingStatement|ID]
+    'on' conditions+=JoinCondition (',' conditions+=JoinCondition)*
+    ('add' '{' addedColumns+=AddedColumn+ '}')?
+;
+
+JoinCondition:
+    leftColumn=ID '=' rightColumn=ID
+;
+
+AddedColumn:
+    sourceColumn=ID ('as' targetColumn=ID)?
+;
+
+AggregateStatement:
+    'aggregate' source=[TableProducingStatement|ID]
+    'into' name=ID
+    'by' groupColumns+=ID (',' groupColumns+=ID)*
+    'add' '{' aggregations+=Aggregation+ '}'
+;
+
+Aggregation:
+    function=AggregationFunction '(' sourceColumn=ID ')'
+    'as' targetColumn=ID ':' type=Type
+;
+
+enum AggregationFunction:
+      SUM='sum'
+    | AVG='avg'
+    | MIN='min'
+    | MAX='max'
+    | COUNT='count'
+;
+
+SetColumnStatement:
+    'set' table=[TableProducingStatement|ID] '.' column=ID
+    ':' type=Type
+    '=' expression=Expression
+;
+
+DropColumnsStatement:
+    'drop' 'columns' columns+=ID (',' columns+=ID)*
+    'from' table=[TableProducingStatement|ID]
+;
+
+SaveStatement:
+    'save' table=[TableProducingStatement|ID]
+    'to' source=DataSource
+    'header' header=BOOLEAN
+;
+
+SaveLogStatement:
+    'save' 'log' 'to' path=STRING
+;
+
+Expression:
+    OrExpression
+;
+
+OrExpression returns Expression:
+    AndExpression ({BinaryExpression.left=current} op='or' right=AndExpression)*
+;
+
+AndExpression returns Expression:
+    EqualityExpression ({BinaryExpression.left=current} op='and' right=EqualityExpression)*
+;
+
+EqualityExpression returns Expression:
+    RelationalExpression ({BinaryExpression.left=current} op=('==' | '!=') right=RelationalExpression)*
+;
+
+RelationalExpression returns Expression:
+    AdditiveExpression ({BinaryExpression.left=current} op=('<' | '<=' | '>' | '>=') right=AdditiveExpression)*
+;
+
+AdditiveExpression returns Expression:
+    MultiplicativeExpression ({BinaryExpression.left=current} op=('+' | '-') right=MultiplicativeExpression)*
+;
+
+MultiplicativeExpression returns Expression:
+    PrimaryExpression ({BinaryExpression.left=current} op=('*' | '/') right=PrimaryExpression)*
+;
+
+PrimaryExpression returns Expression:
+      Literal
+    | ColumnRef
+    | FunctionCall
+    | '(' Expression ')'
+;
+
+ColumnRef:
+    ({ColumnRef} table=[TableProducingStatement|ID] '.')? name=ID
+;
+
+FunctionCall:
+    name=ID '(' (args+=Expression (',' args+=Expression)*)? ')'
+;
+
+Literal:
+      StringLiteral
+    | DecimalLiteral
+    | IntLiteral
+    | BooleanLiteral
+;
+
+StringLiteral:
+    value=STRING
+;
+
+DecimalLiteral:
+    value=DECIMAL
+;
+
+IntLiteral:
+    value=INT
+;
+
+BooleanLiteral:
+    value=BOOLEAN
+;
+
+terminal DECIMAL:
+    INT '.' INT
+;
+
+terminal BOOLEAN:
+    'true' | 'false'
+;

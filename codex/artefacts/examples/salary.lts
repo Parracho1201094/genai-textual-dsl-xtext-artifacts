@@ -1,0 +1,69 @@
+process Salary {
+    input employees from csv "data/employees.csv" separator "," header true {
+        employeeId: integer required;
+        name: string required;
+        categoryId: string required;
+        baseSalary: decimal required;
+    }
+
+    input workedHours from csv "data/worked-hours.csv" separator "," header true {
+        employeeId: integer required;
+        hours: decimal required;
+    }
+
+    input categories from csv "data/employee-categories.csv" separator "," header true {
+        categoryId: string required;
+        hourlyRate: decimal required;
+    }
+
+    table payments {
+        employeeId: integer required;
+        name: string required;
+        categoryId: string required;
+        baseSalary: decimal required;
+        hourlyRate: decimal;
+        totalHours: decimal;
+        payment: decimal;
+    }
+
+    output paymentsCsv table payments to csv "out/payments.csv" separator "," header true;
+    log processLog to "out/salary.log" levels warnings, errors;
+
+    steps {
+        load employees;
+        load workedHours;
+        load categories;
+
+        remove duplicates from employees by employees.employeeId;
+        sort employees by employees.employeeId ascending;
+
+        create empty payments;
+        append rows from employees to payments map {
+            payments.employeeId = employees.employeeId;
+            payments.name = employees.name;
+            payments.categoryId = employees.categoryId;
+            payments.baseSalary = employees.baseSalary;
+        };
+
+        join payments left with categories
+            on payments.categoryId = categories.categoryId
+            select {
+                payments.hourlyRate = categories.hourlyRate;
+            };
+
+        join payments left with workedHours
+            on payments.employeeId = workedHours.employeeId
+            aggregate {
+                payments.totalHours = sum(workedHours.hours);
+            };
+
+        calculate column payments.payment =
+            payments.baseSalary + payments.totalHours * payments.hourlyRate;
+
+        remove columns payments.categoryId, payments.baseSalary,
+            payments.hourlyRate, payments.totalHours;
+
+        save payments to paymentsCsv;
+        save log processLog;
+    }
+}

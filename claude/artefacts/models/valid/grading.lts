@@ -1,0 +1,122 @@
+/*
+ * LTS Model – Case 3: Grading
+ *
+ * Inputs  : students.csv, courses.csv, exams.csv
+ * Output  : grades.csv
+ * Log     : grading_log.txt
+ *
+ * Logic:
+ *   1. Load students, courses, exams.
+ *   2. Filter out exams without a valid score.
+ *   3. Join exams with courses to bring in courseName and creditWeight.
+ *   4. Calculate weighted score = score * creditWeight.
+ *   5. Group by studentId summing weightedScore and creditWeight.
+ *   6. Compute final grade = totalWeightedScore / totalCredits.
+ *   7. Lookup studentName from students.
+ *   8. Save grades. Save log.
+ */
+
+process GradingProcess
+    description: "Calculate final grades for each student across all courses"
+{
+    // ── DATA SOURCES ────────────────────────────────────────────────────────
+    datasource studentsSource type CSV {
+        path:      "data/students.csv"
+        delimiter: ","
+        hasHeader: true
+    }
+
+    datasource coursesSource type CSV {
+        path:      "data/courses.csv"
+        delimiter: ","
+        hasHeader: true
+    }
+
+    datasource examsSource type CSV {
+        path:      "data/exams.csv"
+        delimiter: ","
+        hasHeader: true
+    }
+
+    datasource gradesOutput type CSV {
+        path:      "output/grades.csv"
+        delimiter: ","
+        hasHeader: true
+    }
+
+    // ── TABLE DECLARATIONS ──────────────────────────────────────────────────
+
+    table students from studentsSource {
+        studentId   : Integer
+        studentName : String
+        email       : String
+    }
+
+    table courses from coursesSource {
+        courseId      : Integer
+        courseName    : String
+        creditWeight  : Decimal
+    }
+
+    table exams from examsSource {
+        examId    : Integer
+        studentId : Integer
+        courseId  : Integer
+        score     : Decimal
+    }
+
+    output table grades to gradesOutput {
+        studentId   : Integer
+        studentName : String
+        finalGrade  : Decimal
+    }
+
+    log gradingLog to "output/grading_log.txt"
+        level: WARNING
+
+    // ── STEPS ───────────────────────────────────────────────────────────────
+
+    load students
+    load courses
+    load exams
+
+    // Remove exams with null/invalid scores
+    filter exams where score >= 0.0
+
+    // Bring course credit weight into exams
+    lookup creditWeight from courses on courseId into exams using courseId
+
+    // Weighted score per exam entry
+    add column weightedScore : Decimal = score * creditWeight to exams
+
+    // Create a temp table for aggregation
+    create table gradeSummary {
+        studentId           : Integer
+        totalWeightedScore  : Decimal
+        totalCredits        : Decimal
+        finalGrade          : Decimal
+    }
+
+    // Sum weighted scores per student
+    group exams by studentId
+        aggregating weightedScore using SUM
+        into gradeSummary
+
+    // Sum credits per student (reusing group on creditWeight)
+    group exams by studentId
+        aggregating creditWeight using SUM
+        into gradeSummary
+
+    // Calculate final grade
+    calculate finalGrade = totalWeightedScore / totalCredits in gradeSummary
+
+    // Bring student name
+    lookup studentName from students on studentId into gradeSummary using studentId
+
+    // Remove intermediate columns
+    drop columns totalWeightedScore, totalCredits from gradeSummary
+
+    append gradeSummary to grades
+    save grades
+    save gradingLog
+}

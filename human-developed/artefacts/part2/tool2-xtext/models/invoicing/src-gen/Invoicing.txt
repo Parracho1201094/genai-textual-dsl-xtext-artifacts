@@ -1,0 +1,53 @@
+Invoicing:
+ tables:
+  Clients:
+   id_client as NUMBER
+   name_client as TEXT
+   nif as TEXT
+  Products:
+   id_product as NUMBER
+   name_product as TEXT
+   price as NUMBER
+  Sales:
+   id_sale as NUMBER
+   id_client as NUMBER
+   id_product as NUMBER
+   quantity as NUMBER
+  SalesGroupedByClientProductWithQuantity:
+   id_client as NUMBER
+   id_product as NUMBER
+   quantity as NUMBER
+  SalesWithPrice:
+   id_client as NUMBER
+   id_product as NUMBER
+   quantity as NUMBER
+   price as NUMBER
+  SalesWithTotal:
+   id_client as NUMBER
+   id_product as NUMBER
+   quantity as NUMBER
+   price as NUMBER
+   total as NUMBER
+  GroupedByIdClientSumTotal:
+   id_client as NUMBER
+   total as NUMBER
+  Final:
+   id_client as NUMBER
+   name_client as TEXT
+   nif as TEXT
+   total as NUMBER
+ steps:
+  IMPORT:
+   IMPORT FROM "/clients.csv" TO Clients WITH DELIMITER "," AND DELETE_MISTMATCHED_TYPES AS false
+   IMPORT FROM "/products.csv" TO Products WITH DELIMITER ";" AND DELETE_MISTMATCHED_TYPES AS false
+   IMPORT FROM "/sales.csv" TO Sales WITH DELIMITER "," AND DELETE_MISTMATCHED_TYPES AS false
+  REMOVE DUPLICATES FROM Sales(id_sale)
+  FILTER Sales WHERE quantity GREATER_THAN 1
+  GROUP Sales BY (id_client, id_product) AND PUT SUM(quantity) INTO SalesGroupedByClientProductWithQuantity(quantity)
+  INNER JOIN Products(id_product) WITH SalesGroupedByClientProductWithQuantity(id_product) INTO SalesWithPrice(id_product, price, id_client, quantity)
+  APPEND ROWS FROM SalesWithPrice(id_client, id_product, quantity, price) TO SalesWithTotal (id_client, id_product, quantity, price, total)
+  LOOKUP FROM SalesWithTotal(id_client) TO SalesWithTotal(id_client) AND PUT NUMERIC_MULTIPLY(SalesWithTotal(quantity), SalesWithTotal(price)) INTO SalesWithTotal(total)
+  GROUP SalesWithTotal BY (id_client) AND PUT SUM(total) INTO GroupedByIdClientSumTotal(total)
+  INNER JOIN GroupedByIdClientSumTotal(id_client) WITH Clients(id_client) INTO Final(id_client, name_client, nif, total)
+  SAVE:
+   SAVE Final(id_client, name_client, nif, total) TO "output-invoicing"

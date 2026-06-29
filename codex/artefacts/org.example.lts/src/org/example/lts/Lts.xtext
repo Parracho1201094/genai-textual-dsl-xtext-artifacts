@@ -1,0 +1,293 @@
+grammar org.example.lts.Lts with org.eclipse.xtext.common.Terminals
+
+generate lts "https://example.org/lts"
+import "http://www.eclipse.org/emf/2002/Ecore" as ecore
+
+Model:
+    process=Process
+;
+
+Process:
+    'process' name=ID '{'
+        declarations+=Declaration*
+        'steps' '{'
+            steps+=Operation*
+        '}'
+    '}'
+;
+
+Declaration:
+    TableDeclaration | CsvSink | LogSink | ExternalFunction
+;
+
+TableDeclaration:
+    (
+        'input' name=ID 'from' source=CsvSource |
+        'table' name=ID
+    )
+    '{'
+        columns+=Column*
+    '}'
+;
+
+CsvSource:
+    'csv' path=STRING
+    ('separator' separator=STRING)?
+    ('header' header=BooleanLiteral)?
+;
+
+Column:
+    name=ID ':' type=DataType
+    (required?='required')?
+    ('format' format=STRING)?
+    ';'
+;
+
+CsvSink:
+    'output' name=ID 'table' table=[TableDeclaration]
+    'to' 'csv' path=STRING
+    ('separator' separator=STRING)?
+    ('header' header=BooleanLiteral)?
+    ';'
+;
+
+LogSink:
+    'log' name=ID 'to' path=STRING
+    'levels' levels+=LogLevel (',' levels+=LogLevel)*
+    ';'
+;
+
+ExternalFunction:
+    'external' 'function' name=ID
+    '(' (parameters+=Parameter (',' parameters+=Parameter)*)? ')'
+    ':' returnType=DataType
+    'implemented' 'by' implementation=STRING
+    ';'
+;
+
+Parameter:
+    name=ID ':' type=DataType
+;
+
+Operation:
+    LoadOperation |
+    CreateTableOperation |
+    AppendRowsOperation |
+    FilterOperation |
+    SortOperation |
+    GroupOperation |
+    AggregateOperation |
+    JoinOperation |
+    InsertColumnOperation |
+    RemoveColumnOperation |
+    CalculateColumnOperation |
+    LookupOperation |
+    RemoveDuplicatesOperation |
+    SaveTableOperation |
+    SaveLogOperation
+;
+
+LoadOperation:
+    'load' table=[TableDeclaration] ';'
+;
+
+CreateTableOperation:
+    'create' 'empty' table=[TableDeclaration] ';'
+;
+
+AppendRowsOperation:
+    'append' 'rows' 'from' source=[TableDeclaration]
+    'to' target=[TableDeclaration]
+    ('map' '{' mappings+=ColumnAssignment+ '}')?
+    ';'
+;
+
+FilterOperation:
+    'filter' table=[TableDeclaration] 'where' condition=Expression ';'
+;
+
+SortOperation:
+    'sort' table=[TableDeclaration] 'by'
+    keys+=SortKey (',' keys+=SortKey)*
+    ';'
+;
+
+SortKey:
+    column=ColumnReference (direction=SortDirection)?
+;
+
+GroupOperation:
+    'group' source=[TableDeclaration] 'into' target=[TableDeclaration]
+    'by' keys+=ColumnReference (',' keys+=ColumnReference)*
+    'aggregate' '{'
+        aggregations+=ColumnAssignment+
+    '}'
+    ';'
+;
+
+AggregateOperation:
+    'aggregate' source=[TableDeclaration] 'into' target=[TableDeclaration]
+    ('by' keys+=ColumnReference (',' keys+=ColumnReference)*)?
+    'compute' '{'
+        aggregations+=ColumnAssignment+
+    '}'
+    ';'
+;
+
+JoinOperation:
+    'join' target=[TableDeclaration]
+    (kind=JoinKind)?
+    'with' source=[TableDeclaration]
+    'on' condition=Expression
+    ('select' '{' selections+=ColumnAssignment+ '}')?
+    ('aggregate' '{' aggregations+=ColumnAssignment+ '}')?
+    ';'
+;
+
+InsertColumnOperation:
+    'insert' 'column' table=[TableDeclaration] '.' column=ID
+    ':' type=DataType
+    ('=' value=Expression)?
+    ';'
+;
+
+RemoveColumnOperation:
+    'remove' 'columns'
+    columns+=ColumnReference (',' columns+=ColumnReference)*
+    ';'
+;
+
+CalculateColumnOperation:
+    'calculate' 'column' table=[TableDeclaration] '.' column=ID
+    '=' value=Expression
+    ';'
+;
+
+LookupOperation:
+    'lookup' 'into' target=ColumnReference
+    'from' source=[TableDeclaration]
+    'match' left=ColumnReference '=' right=ColumnReference
+    'return' result=ColumnReference
+    ('default' defaultValue=Expression)?
+    ';'
+;
+
+RemoveDuplicatesOperation:
+    'remove' 'duplicates' 'from' table=[TableDeclaration]
+    'by' keys+=ColumnReference (',' keys+=ColumnReference)*
+    ';'
+;
+
+SaveTableOperation:
+    'save' table=[TableDeclaration] 'to' sink=[CsvSink] ';'
+;
+
+SaveLogOperation:
+    'save' 'log' log=[LogSink] ';'
+;
+
+ColumnAssignment:
+    table=[TableDeclaration] '.' column=ID '=' value=Expression ';'
+;
+
+Expression returns Expression:
+    OrExpression
+;
+
+OrExpression returns Expression:
+    AndExpression ({BinaryExpression.left=current} operator='or' right=AndExpression)*
+;
+
+AndExpression returns Expression:
+    EqualityExpression ({BinaryExpression.left=current} operator='and' right=EqualityExpression)*
+;
+
+EqualityExpression returns Expression:
+    RelationalExpression ({BinaryExpression.left=current} operator=('=' | '!=') right=RelationalExpression)*
+;
+
+RelationalExpression returns Expression:
+    AdditiveExpression ({BinaryExpression.left=current} operator=('<' | '<=' | '>' | '>=') right=AdditiveExpression)*
+;
+
+AdditiveExpression returns Expression:
+    MultiplicativeExpression ({BinaryExpression.left=current} operator=('+' | '-' | '&') right=MultiplicativeExpression)*
+;
+
+MultiplicativeExpression returns Expression:
+    UnaryExpression ({BinaryExpression.left=current} operator=('*' | '/') right=UnaryExpression)*
+;
+
+UnaryExpression returns Expression:
+    {UnaryExpression} operator=('not' | '-') operand=UnaryExpression |
+    PrimaryExpression
+;
+
+PrimaryExpression returns Expression:
+    ColumnReference |
+    FunctionCall |
+    StringLiteral |
+    DecimalLiteral |
+    IntegerLiteral |
+    BooleanValue |
+    NullLiteral |
+    '(' Expression ')'
+;
+
+ColumnReference returns Expression:
+    {ColumnReference} table=[TableDeclaration] '.' column=ID
+;
+
+FunctionCall returns Expression:
+    {FunctionCall} name=ID
+    '(' (arguments+=Expression (',' arguments+=Expression)*)? ')'
+;
+
+StringLiteral returns Expression:
+    {StringLiteral} value=STRING
+;
+
+IntegerLiteral returns Expression:
+    {IntegerLiteral} value=INT
+;
+
+DecimalLiteral returns Expression:
+    {DecimalLiteral} value=DECIMAL
+;
+
+BooleanValue returns Expression:
+    {BooleanValue} value=BooleanLiteral
+;
+
+NullLiteral returns Expression:
+    {NullLiteral} 'null'
+;
+
+enum LogLevel:
+    WARNING='warnings' | ERROR='errors'
+;
+
+enum SortDirection:
+    ASC='ascending' | DESC='descending'
+;
+
+enum JoinKind:
+    INNER='inner' | LEFT='left'
+;
+
+enum DataType:
+    STRING='string' |
+    INTEGER='integer' |
+    DECIMAL='decimal' |
+    BOOLEAN='boolean' |
+    DATE='date' |
+    DATETIME='datetime'
+;
+
+BooleanLiteral returns ecore::EBoolean:
+    'true' | 'false'
+;
+
+DECIMAL returns ecore::EBigDecimal:
+    INT '.' INT
+;

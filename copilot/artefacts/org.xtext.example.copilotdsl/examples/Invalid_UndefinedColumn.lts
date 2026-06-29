@@ -1,0 +1,32 @@
+/*
+ * Invalid Example 4: Undefined Column Reference
+ * Error: Referencing a column that doesn't exist in the table
+ */
+process InvalidUndefinedColumnExample {
+	csv source employees from "employees.csv" {
+		id: Integer,
+		name: String,
+		salary: Decimal
+	}
+	
+	table employees_copy {
+		id: Integer,
+		name: String,
+		salary: Decimal
+	}
+	
+	operations {
+		load employees_copy from employees copy all columns;
+		
+		// ERROR: Column 'department' doesn't exist in employees_copy
+		filter employees_copy where department = "IT";
+		
+		// ERROR: Column 'email' doesn't exist for join
+		join employees_copy employees on employees_copy.id = employees.email;
+	}
+	
+	output {
+		save employees_copy to "output.csv";
+		save log to "log.txt";
+	}
+}

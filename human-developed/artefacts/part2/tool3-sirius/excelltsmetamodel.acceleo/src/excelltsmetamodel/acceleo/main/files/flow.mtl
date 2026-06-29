@@ -1,0 +1,155 @@
+[comment encoding = UTF-8 /]
+[module flow('http://www.example.org/excelltsmetamodel')]
+
+[template public generateFlow(aModel : Model)]
+[file ('org/enorm/domain/Flow.java', false, 'UTF-8')]
+
+package org.enorm.domain;
+
+import org.enorm.domain.enums.*;
+import org.enorm.domain.steps.appendRowsStep.*;
+import org.enorm.domain.steps.filterStep.*;
+import org.enorm.domain.steps.groupByStep.*;
+import org.enorm.domain.steps.importStep.*;
+import org.enorm.domain.steps.joinStep.*;
+import org.enorm.domain.steps.lookupStep.*;
+import org.enorm.domain.steps.removeDuplicatesStep.*;
+import org.enorm.domain.steps.sortStep.*;
+import org.enorm.domain.steps.saveStep.*;
+import org.enorm.domain.tables.*;
+import org.enorm.domain.tables.factories.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class Flow {
+
+    public static String initialInputPath = "./src-gen/org/enorm/files/input/";
+    public static String initialOutputPath = "./src-gen/org/enorm/files/output/";
+
+    public static void execute() {
+		
+		// Create factory tables ---------------------------------------------------------------------------------------
+	[for (t : Table | aModel.tables )]
+		FactoryTable factory[t.name/] = new Factory[t.name/]();
+	[/for]
+
+        // Steps -------------------------------------------------------------------------------------------------------
+
+		
+		// Instantiation of auxiliary variables
+     	[if (aModel.steps->exists(s | s.oclIsTypeOf(excelltsmetamodel::Group)))]
+        // Group By 
+        List<Column> groupByColumns;
+        Column operandColumn;
+        GroupByOperationType operation;
+        [/if]
+
+        [if (aModel.steps->exists(s | s.oclIsTypeOf(excelltsmetamodel::AppendRows)))]
+        // Append rows
+        Map<Column, Column> mapping;
+        [/if]
+
+        [if (aModel.steps->exists(s | s.oclIsTypeOf(excelltsmetamodel::Join)))]
+        // Join
+     	List<Column> selectColumns;
+        [/if]
+
+	[for (s : Step | aModel.steps )]
+	[if (s.oclIsTypeOf(excelltsmetamodel::Import))]
+		// Import ([s.description/])
+		[for (table : excelltsmetamodel::TableToImport | s.oclAsType(excelltsmetamodel::Import).tablesToImport)]
+        Table [table.table.name/] = FactoryImportStep.getStep().apply(factory[table.table.name/], initialInputPath + "/[table.path/]", "[table.delimiter/]", false);
+		[/for]
+
+	[/if]
+	[if (s.oclIsTypeOf(excelltsmetamodel::RemoveDuplicates))]
+		// Remove duplicates ([s.description/])
+		[let remove : excelltsmetamodel::RemoveDuplicates = s.oclAsType(excelltsmetamodel::RemoveDuplicates)]
+        [remove.table.name/] = FactoryRemoveDuplicatesStep.getStep().apply([remove.table.name/], [remove.table.name/].getColumnByName("[remove.column.name/]"), factory[remove.table.name/]);
+		[/let]
+
+	[/if]
+	[if (s.oclIsTypeOf(excelltsmetamodel::Filter))]
+		// Filter ([s.description/])
+		[let filter : excelltsmetamodel::Filter = s.oclAsType(excelltsmetamodel::Filter)]
+        [filter.table.name/] = FactoryFilterStep.getStep().apply([filter.table.name/], [filter.table.name/].getColumnByName("[filter.column.name/]"), [filter.operand/],
+				FilterOperatorType.[filter.operator/], factory[filter.table.name/]);
+		[/let]
+
+	[/if]
+	[if (s.oclIsTypeOf(excelltsmetamodel::Group))]
+		// Group By ([s.description/])
+		[let group : excelltsmetamodel::Group = s.oclAsType(excelltsmetamodel::Group)]
+        groupByColumns = new ArrayList<>();
+		[for (c : excelltsmetamodel::Column | group.groupBy)]
+        groupByColumns.add([group.table.name/].getColumnByName("[c.name/]"));
+		[/for]
+        operandColumn = [group.table.name/].getColumnByName("[group.operandColumn.name/]");
+        operation = GroupByOperationType.[group.operation/];
+        Table [group.resultTable.name/] = FactoryGroupByStep.getStep().apply([group.table.name/],
+                groupByColumns, operandColumn, operation, factory[group.resultTable.name/]);
+		[/let]
+
+	[/if]
+	[if (s.oclIsTypeOf(excelltsmetamodel::Join))]
+		// Join ([s.description/])
+		[let join : excelltsmetamodel::Join = s.oclAsType(excelltsmetamodel::Join)]
+        selectColumns = new ArrayList<>();
+		[for (c : excelltsmetamodel::Column | join.selectColumns)]
+		[if (join.tableLeft.columns->exists(s | s.name = c.name))]
+		selectColumns.add([join.tableLeft.name/].getColumnByName("[c.name/]"));
+		[/if]
+		[if (not join.tableLeft.columns->exists(s | s.name = c.name) and join.tableRight.columns->exists(s | s.name = c.name)) ]
+		selectColumns.add([join.tableRight.name/].getColumnByName("[c.name/]"));
+		[/if]
+		[/for]
+        Table [join.resultTable.name/] = FactoryJoinStep.getStep().apply([join.tableLeft.name/], [join.tableRight.name/],
+                [join.tableLeft.name/].getColumnByName("[join.columnLeft.name/]"),
+                [join.tableRight.name/].getColumnByName("[join.columnRight.name/]"),
+                JoinType.[join.type/], factory[join.resultTable.name/], selectColumns);
+		[/let]
+
+	[/if]
+	[if (s.oclIsTypeOf(excelltsmetamodel::AppendRows))]
+		// Append Rows ([s.description/])
+		[let append : excelltsmetamodel::AppendRows = s.oclAsType(excelltsmetamodel::AppendRows)]
+        Table [append.destinTable.name/] = factory[append.destinTable.name/].generateTable();
+        mapping = new HashMap<>();
+		[for (a : excelltsmetamodel::Association | append.associations)]
+        mapping.put([append.originTable.name/].getColumnByName("[a.originCol.name/]"), [append.originTable.name/].getColumnByName("[a.destinCol.name/]"));
+		[/for]
+        FactoryAppendRowsStep.getStep().apply([append.originTable.name/], [append.destinTable.name/], mapping);
+		[/let]
+
+	[/if]
+	[if (s.oclIsTypeOf(excelltsmetamodel::Lookup))]
+		// Lookup Rows ([s.description/])
+		[let look : excelltsmetamodel::Lookup = s.oclAsType(excelltsmetamodel::Lookup)]
+      	[look.resultTable.name/] = FactoryLookupStep.getStep().apply([look.table.name/], [look.table.name/].getColumnByName("[look.column.name/]"),
+                [look.lookupTable.name/], [look.lookupTable.name/].getColumnByName("[look.matchColumn.name/]"),
+                [look.table.name/].getColumnByName("[look.operandColumn.name/]"), [look.lookupTable.name/].getColumnByName("[look.lookupColumn.name/]"),
+                LookupOperationType.[look.operation/],
+                "[look.resultColumn.name/]", factory[look.resultTable.name/]);
+		[/let]
+
+	[/if]
+
+	[if (s.oclIsTypeOf(excelltsmetamodel::Save))]
+		// Save
+		[let save : excelltsmetamodel::Save = s.oclAsType(excelltsmetamodel::Save)]
+		[for (t : excelltsmetamodel::TableToSave | save.tablesToSave)]
+		FactorySaveStep.getStep().apply([t.table.name/], "[t.path/]");
+		[/for]
+		[/let]
+
+	[/if]
+	[/for]
+	
+	}
+}
+
+[/file]
+[/template]

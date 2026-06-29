@@ -1,0 +1,190 @@
+@startuml
+digraph model {
+	subgraph tier1 {
+	    node [color="#99ff99",style="filled",group="tier1"]
+	    "Employee"
+	    "Category"
+	    "WorkedHours"
+	}
+	subgraph tier2 {
+	    node [color="lightyellow",style="filled",group="tier2"]
+	    "EmployeeJoinCategoryJoinSumWorkedHoursTable"
+	    "EmployeeJoinCategory"
+	    "SumWorkedHours"
+	    "PaymentsFinal"
+	    "Payments"
+	}
+	subgraph tier3 {
+	    node [color="lightblue",style="filled",group="tier3"]
+	    "LoadSalaryTables"
+	    "SortByEmployeeId"
+	    "RemoveDuplicatedEmployeeIds"
+	    "EmployeeWithCategory"
+	    "EmployeeIdAndSumWorkedHours"
+	    "EmployeeJoinCategoryJoinSumWorkedHours"
+	    "MoveToPaymentsTable"
+	    "TotalPayPerEmployee"
+	    "MoveToPaymentsFinal"
+	    "SavePaymentsFinalTable"
+	}
+"Employee" [shape=box, label="Table: Employee\n
+id_employee: NUMBER
+name_employee: TEXT
+id_category: NUMBER
+"]
+"Category" [shape=box, label="Table: Category\n
+id_category: NUMBER
+name_category: TEXT
+value_worked_hours: NUMBER
+"]
+"WorkedHours" [shape=box, label="Table: WorkedHours\n
+id_employee: NUMBER
+date: DATE
+worked_hours: NUMBER
+"]
+"EmployeeJoinCategory" [shape=box, label="Table: EmployeeJoinCategory\n
+id_employee: NUMBER
+name_employee: TEXT
+id_category: NUMBER
+name_category: TEXT
+value_worked_hours: NUMBER
+"]
+"SumWorkedHours" [shape=box, label="Table: SumWorkedHours\n
+id_employee: NUMBER
+total_worked_hours: NUMBER
+"]
+"EmployeeJoinCategoryJoinSumWorkedHoursTable" [shape=box, label="Table: EmployeeJoinCategoryJoinSumWorkedHoursTable\n
+id_employee: NUMBER
+name_employee: TEXT
+id_category: NUMBER
+name_category: TEXT
+value_worked_hours: NUMBER
+total_worked_hours: NUMBER
+"]
+"Payments" [shape=box, label="Table: Payments\n
+id_employee: NUMBER
+name_employee: TEXT
+id_category: NUMBER
+name_category: TEXT
+value_worked_hours: NUMBER
+total_worked_hours: NUMBER
+payment: NUMBER
+"]
+"PaymentsFinal" [shape=box, label="Table: PaymentsFinal\n
+id_employee: NUMBER
+name_employee: TEXT
+id_category: NUMBER
+name_category: TEXT
+payment: NUMBER
+"]
+"LoadSalaryTables" [shape=box, label="Type = Import\n
+Name = LoadSalaryTables
+Description = 
+Tables = Employee (/employees.csv) delimited by ',' Delete Mismatched Types = true
+Category (/categories.csv) delimited by ',' Delete Mismatched Types = false
+WorkedHours (/workedhours.csv) delimited by ',' Delete Mismatched Types = false
+"]
+"SortByEmployeeId" [shape=box, label="Type = Sort\n
+Name = SortByEmployeeId
+Description = Order all employees in ascending way
+From Table = Employee
+On column = id_employee
+ORDER = ASC
+"]
+"RemoveDuplicatedEmployeeIds" [shape=box, label="Type = Remove Duplicates\n
+Name = RemoveDuplicatedEmployeeIds
+Description = 
+From Table = Employee
+"]
+"EmployeeWithCategory" [shape=box, label="Type = Join\n
+Name = EmployeeWithCategory
+Description = 
+Table Left = Employee
+Table Right = Category
+Type = INNER
+Condition = id_employee ON id_category
+Select Columns = id_employee, name_employee, id_category, name_category, value_worked_hours
+"]
+"EmployeeIdAndSumWorkedHours" [shape=box, label="Type = Group by\n
+Name = EmployeeIdAndSumWorkedHours
+Description = 
+From Table = WorkedHours
+Result Table = SumWorkedHours
+Result Column = total_worked_hours
+"]
+"EmployeeJoinCategoryJoinSumWorkedHours" [shape=box, label="Type = Join\n
+Name = EmployeeJoinCategoryJoinSumWorkedHours
+Description = 
+Table Left = EmployeeJoinCategory
+Table Right = SumWorkedHours
+Type = INNER
+Condition = id_employee ON id_employee
+Select Columns = id_employee, name_employee, name_category, value_worked_hours, total_worked_hours
+"]
+"MoveToPaymentsTable" [shape=box, label="Type = Append Rows\n
+Name = MoveToPaymentsTable
+Description = 
+From Table = EmployeeJoinCategoryJoinSumWorkedHoursTable
+Result Table = Payments
+"]
+"MoveToPaymentsTable' associations" [shape=box, label="MoveToPaymentsTable' associations\n
+EmployeeJoinCategoryJoinSumWorkedHoursTable.id_employee -> Payments.id_employee
+EmployeeJoinCategoryJoinSumWorkedHoursTable.name_employee -> Payments.name_employee
+EmployeeJoinCategoryJoinSumWorkedHoursTable.id_category -> Payments.id_category
+EmployeeJoinCategoryJoinSumWorkedHoursTable.name_category -> Payments.name_category
+EmployeeJoinCategoryJoinSumWorkedHoursTable.value_worked_hours -> Payments.value_worked_hours
+EmployeeJoinCategoryJoinSumWorkedHoursTable.total_worked_hours -> Payments.total_worked_hours
+"]
+"TotalPayPerEmployee" [shape=box, label="Type = Lookup\n
+Name = TotalPayPerEmployee\n
+Description = 
+Origin Table = Payments
+Lookup Table = Payments
+Result Table = Payments
+Base Column (origin table) = id_employee
+Match Column (lookup table) = id_employee
+Operand column (origin table) = value_worked_hours
+Operation = NUMERIC_MULTIPLY
+Operator (lookup table) = NUMERIC_MULTIPLY
+"]
+"MoveToPaymentsFinal" [shape=box, label="Type = Append Rows\n
+Name = MoveToPaymentsFinal
+Description = 
+From Table = Payments
+Result Table = PaymentsFinal
+"]
+"MoveToPaymentsFinal' associations" [shape=box, label="MoveToPaymentsFinal' associations\n
+Payments.id_employee -> PaymentsFinal.id_employee
+Payments.name_employee -> PaymentsFinal.name_employee
+Payments.id_category -> PaymentsFinal.id_category
+Payments.name_category -> PaymentsFinal.name_category
+Payments.payment -> PaymentsFinal.payment
+"]
+"SavePaymentsFinalTable" [shape=box, label="Type = Save\n
+Name = SavePaymentsFinalTable
+Description = 
+Tables = PaymentsFinal(./output-salary.csv)
+"]
+"LoadSalaryTables" -> "SortByEmployeeId" [label="Next"]
+"Employee" -> "LoadSalaryTables" [label="Imported"]
+"Category" -> "LoadSalaryTables" [label="Imported"]
+"WorkedHours" -> "LoadSalaryTables" [label="Imported"]
+"SortByEmployeeId" -> "RemoveDuplicatedEmployeeIds" [label="Next"]
+"RemoveDuplicatedEmployeeIds" -> "EmployeeWithCategory" [label="Next"]
+"EmployeeWithCategory" -> "EmployeeIdAndSumWorkedHours" [label="Next"]
+"EmployeeWithCategory" -> "EmployeeJoinCategory" [label="Produces"]
+"EmployeeIdAndSumWorkedHours" -> "EmployeeJoinCategoryJoinSumWorkedHours" [label="Next"]
+"EmployeeIdAndSumWorkedHours" -> "SumWorkedHours" [label="Produces"]
+"EmployeeJoinCategoryJoinSumWorkedHours" -> "MoveToPaymentsTable" [label="Next"]
+"EmployeeJoinCategoryJoinSumWorkedHours" -> "EmployeeJoinCategoryJoinSumWorkedHoursTable" [label="Produces"]
+"MoveToPaymentsTable" -> "TotalPayPerEmployee" [label="Next"]
+"MoveToPaymentsTable" -> "Payments" [label="Produces"]
+"MoveToPaymentsTable" -> "MoveToPaymentsTable' associations" [label="Map as"]
+"TotalPayPerEmployee" -> "MoveToPaymentsFinal" [label="Next"]
+"TotalPayPerEmployee" -> "Payments" [label="Fill result on"]
+"MoveToPaymentsFinal" -> "SavePaymentsFinalTable" [label="Next"]
+"MoveToPaymentsFinal" -> "PaymentsFinal" [label="Produces"]
+"MoveToPaymentsFinal" -> "MoveToPaymentsFinal' associations" [label="Map as"]
+"SavePaymentsFinalTable" -> "PaymentsFinal" [label="Saves"]
+}
+@enduml

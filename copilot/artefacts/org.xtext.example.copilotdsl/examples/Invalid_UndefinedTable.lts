@@ -1,0 +1,22 @@
+/*
+ * Invalid Example 2: Undefined Table Reference
+ * Error: Trying to operate on a table that doesn't exist
+ */
+process InvalidUndefinedTableExample {
+	csv source employees from "employees.csv" {
+		id: Integer,
+		name: String
+	}
+	
+	operations {
+		// ERROR: payments table is never defined
+		load payments from employees;
+		
+		filter payments where id > 5;
+	}
+	
+	output {
+		save payments to "output.csv";
+		save log to "log.txt";
+	}
+}

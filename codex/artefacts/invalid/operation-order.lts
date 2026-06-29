@@ -1,0 +1,20 @@
+process OperationOrder {
+    input sales from csv "sales.csv" {
+        amount: decimal required;
+    }
+    table result {
+        amount: decimal;
+    }
+    output resultCsv table result to csv "result.csv";
+    log processLog to "result.log" levels errors;
+
+    steps {
+        // ERROR LTS_TABLE_NOT_READY: sales has not been loaded.
+        append rows from sales to result map {
+            result.amount = sales.amount;
+        };
+        // ERROR LTS_TABLE_NOT_READY: result has not been created.
+        save result to resultCsv;
+        save log processLog;
+    }
+}

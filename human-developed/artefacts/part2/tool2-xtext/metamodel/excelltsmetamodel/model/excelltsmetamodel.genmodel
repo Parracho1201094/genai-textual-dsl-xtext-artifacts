@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<genmodel:GenModel xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:genmodel="http://www.eclipse.org/emf/2002/GenModel"
+    modelDirectory="/excelltsmetamodel/src-gen" creationIcons="false"
+    editDirectory="/excelltsmetamodel.edit/src-gen" editorDirectory="/excelltsmetamodel.editor/src-gen"
+    modelPluginID="excelltsmetamodel" modelName="Excelltsmetamodel" rootExtendsClass="org.eclipse.emf.ecore.impl.MinimalEObjectImpl$Container"
+    codeFormatting="true" importerID="org.eclipse.emf.importer.ecore" complianceLevel="17.0"
+    copyrightFields="false" operationReflection="true" importOrganizing="true">
+  <foreignModel>excelltsmetamodel.ecore</foreignModel>
+  <testsDirectory xsi:nil="true"/>
+  <genPackages prefix="Excelltsmetamodel" disposableProviderFactory="true" ecorePackage="excelltsmetamodel.ecore#/">
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="excelltsmetamodel.ecore#//JoinType">
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//JoinType/INNER"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//JoinType/OUTER"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//JoinType/LEFT"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//JoinType/RIGHT"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="excelltsmetamodel.ecore#//OrderType">
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//OrderType/ASC"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//OrderType/DESC"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="excelltsmetamodel.ecore#//ColumnOperationType">
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//ColumnOperationType/INSERT"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//ColumnOperationType/REMOVE"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="excelltsmetamodel.ecore#//DataType">
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//DataType/TEXT"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//DataType/NUMBER"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//DataType/DATE"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="excelltsmetamodel.ecore#//LookupOperationType">
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//LookupOperationType/NUMERIC_SUM"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//LookupOperationType/NUMERIC_SUBTRACT"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//LookupOperationType/NUMERIC_MULTIPLY"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//LookupOperationType/NUMERIC_DIVIDE"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//LookupOperationType/TEXT_CONCAT"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="excelltsmetamodel.ecore#//FilterOperatorType">
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//FilterOperatorType/EQUALS"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//FilterOperatorType/LESS_THAN"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//FilterOperatorType/GREATER_THAN"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//FilterOperatorType/LESS_OR_EQUALS_THAN"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//FilterOperatorType/GREATER_OR_EQUALS_THAN"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="excelltsmetamodel.ecore#//GroupOperationType">
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//GroupOperationType/MAX"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//GroupOperationType/MIN"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//GroupOperationType/COUNT"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//GroupOperationType/SUM"/>
+      <genEnumLiterals ecoreEnumLiteral="excelltsmetamodel.ecore#//GroupOperationType/AVERAGE"/>
+    </genEnums>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//Model">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Model/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Model/logs"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Model/tables"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Model/steps"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//Step">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Step/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Step/description"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//FlowStep">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//FlowStep/next"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//FinalStep"/>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//Save">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Save/tablesToSave"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//Table">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Table/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Table/columns"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//Group">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Group/table"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Group/groupBy"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Group/resultTable"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Group/operandColumn"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Group/operation"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Group/resultColumn"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//Column">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Column/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Column/dataType"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//Sort">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Sort/table"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Sort/column"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Sort/order"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//AppendRows">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//AppendRows/originTable"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//AppendRows/destinTable"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//AppendRows/associations"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//TableToSave">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//TableToSave/table"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//TableToSave/path"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//TableToSave/columnsNames"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//Association">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Association/originCol"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Association/destinCol"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//Filter">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Filter/table"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Filter/column"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Filter/operand"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Filter/operator"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//GenericStep"/>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//Join">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Join/tableLeft"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Join/tableRight"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Join/columnLeft"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Join/columnRight"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Join/type"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Join/resultTable"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Join/selectColumns"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//Import">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Import/tablesToImport"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//TableToImport">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//TableToImport/table"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//TableToImport/path"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//TableToImport/delimiter"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//TableToImport/deleteMismatchedTypes"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//Lookup">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Lookup/table"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Lookup/lookupTable"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Lookup/column"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Lookup/operandColumn"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Lookup/matchColumn"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Lookup/lookupColumn"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Lookup/resultColumn"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Lookup/operation"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Lookup/resultTable"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//RemoveDuplicates">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//RemoveDuplicates/table"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//RemoveDuplicates/column"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//Concat">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Concat/sourceA"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Concat/sourceB"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Concat/resultColumn"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Concat/resultTable"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//StringManipulation">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//StringManipulation/table"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//Split">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Split/source"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Split/resultColumnB"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Split/resultColumnA"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Split/delimiter"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Split/atCharIndex"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Split/resultTable"/>
+    </genClasses>
+    <genClasses ecoreClass="excelltsmetamodel.ecore#//Extract">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference excelltsmetamodel.ecore#//Extract/column"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Extract/lbChar"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Extract/ubChar"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute excelltsmetamodel.ecore#//Extract/pattern"/>
+    </genClasses>
+  </genPackages>
+</genmodel:GenModel>

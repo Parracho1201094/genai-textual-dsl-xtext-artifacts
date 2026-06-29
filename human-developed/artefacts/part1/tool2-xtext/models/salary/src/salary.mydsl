@@ -1,0 +1,298 @@
+Model Salary {
+	logs true
+	tables {
+		Table Employee {
+			columns {
+				Column id_employee {
+					dataType NUMBER
+				},
+				Column name_employee {
+					dataType TEXT
+				},
+				Column id_category {
+					dataType NUMBER
+				}
+			}
+		},
+		Table Category {
+			columns {
+				Column id_category {
+					dataType NUMBER
+				},
+				Column name_category {
+					dataType TEXT
+				},
+				Column value_worked_hours {
+					dataType NUMBER
+				}
+			}
+		},
+		Table WorkedHours {
+			columns {
+				Column id_employee {
+					dataType NUMBER
+				},
+				Column date {
+					dataType DATE
+				},
+				Column worked_hours {
+					dataType NUMBER
+				}
+			}
+		},
+		Table EmployeeJoinCategory {
+			columns {
+				Column id_employee {
+					dataType NUMBER
+				},
+				Column name_employee {
+					dataType TEXT
+				},
+				Column id_category {
+					dataType NUMBER
+				},
+				Column name_category {
+					dataType TEXT
+				},
+				Column value_worked_hours {
+					dataType NUMBER
+				}
+			}
+		},
+		Table SumWorkedHours {
+			columns {
+				Column id_employee {
+					dataType NUMBER
+				},
+				Column total_worked_hours {
+					dataType NUMBER
+				}
+			}
+		},
+		Table EmployeeJoinCategoryJoinSumWorkedHoursTable {
+			columns {
+				Column id_employee {
+					dataType NUMBER
+				},
+				Column name_employee {
+					dataType TEXT
+				},
+				Column id_category {
+					dataType NUMBER
+				},
+				Column name_category {
+					dataType TEXT
+				},
+				Column value_worked_hours {
+					dataType NUMBER
+				},
+				Column total_worked_hours {
+					dataType NUMBER
+				}
+			}
+		},
+		Table Payments {
+			columns {
+				Column id_employee {
+					dataType NUMBER
+				},
+				Column name_employee {
+					dataType TEXT
+				},
+				Column id_category {
+					dataType NUMBER
+				},
+				Column name_category {
+					dataType TEXT
+				},
+				Column value_worked_hours {
+					dataType NUMBER
+				},
+				Column total_worked_hours {
+					dataType NUMBER
+				},
+				Column payment {
+					dataType NUMBER
+				}
+			}
+		},
+		Table PaymentsFinal {
+			columns {
+				Column id_employee {
+					dataType NUMBER
+				},
+				Column name_employee {
+					dataType TEXT
+				},
+				Column id_category {
+					dataType NUMBER
+				},
+				Column name_category {
+					dataType TEXT
+				},
+				Column payment {
+					dataType NUMBER
+				}
+			}
+		}
+	} 
+	steps {
+		Import LoadSalaryTables {
+			tablesToImport { 
+				deleteMismatchedTypes true
+				TableToImport { 
+					path "/employees.csv"
+					delimiter ","
+					table Employee
+				},
+				deleteMismatchedTypes false
+				TableToImport {
+					path "/categories.csv"
+					delimiter ","
+					table Category
+				},
+				deleteMismatchedTypes false
+				TableToImport {
+					path "/workedhours.csv"
+					delimiter ","
+					table WorkedHours
+				}
+			}
+			next SortByEmployeeId
+		}, 
+		Sort SortByEmployeeId {
+			description "Order all employees in ascending way"
+			table Employee
+			column "Employee.id_employee"
+			order ASC
+			next RemoveDuplicatedEmployeeIds
+		},
+		RemoveDuplicates RemoveDuplicatedEmployeeIds {
+			table Employee
+			column "Employee.id_employee"
+			next EmployeeWithCategory
+		},
+		Join EmployeeWithCategory {
+			tableLeft Employee
+			columnLeft "Employee.id_employee"
+			type INNER
+			tableRight Category
+			columnRight "Category.id_category"
+			selectColumns (
+				"Employee.id_employee", 
+				"Employee.name_employee",
+				"Category.id_category",
+				"Category.name_category",
+				"Category.value_worked_hours"
+			)
+			resultTable EmployeeJoinCategory
+			next EmployeeIdAndSumWorkedHours
+		},
+		Group EmployeeIdAndSumWorkedHours {
+			table WorkedHours 
+			groupBy ("WorkedHours.id_employee")
+			operation SUM
+			operandColumn "WorkedHours.worked_hours"
+			resultTable SumWorkedHours
+			resultColumn "SumWorkedHours.total_worked_hours"
+			next EmployeeJoinCategoryJoinSumWorkedHours
+		},
+		Join EmployeeJoinCategoryJoinSumWorkedHours {
+			tableLeft EmployeeJoinCategory
+			columnLeft "EmployeeJoinCategory.id_employee"
+			type INNER
+			tableRight SumWorkedHours
+			columnRight "SumWorkedHours.id_employee"
+			selectColumns (
+				"EmployeeJoinCategory.id_employee", 
+				"EmployeeJoinCategory.name_employee", 
+				"EmployeeJoinCategory.name_category", 
+				"EmployeeJoinCategory.value_worked_hours", 
+				"SumWorkedHours.total_worked_hours"
+			)
+			resultTable EmployeeJoinCategoryJoinSumWorkedHoursTable
+			next MoveToPaymentsTable
+		},
+		AppendRows MoveToPaymentsTable {
+			originTable EmployeeJoinCategoryJoinSumWorkedHoursTable
+			destinTable Payments
+			associations {
+				Association {
+					originCol "EmployeeJoinCategoryJoinSumWorkedHoursTable.id_employee"
+					destinCol "Payments.id_employee"
+				},
+				Association {
+					originCol "EmployeeJoinCategoryJoinSumWorkedHoursTable.name_employee"
+					destinCol "Payments.name_employee"
+				},
+				Association {
+					originCol "EmployeeJoinCategoryJoinSumWorkedHoursTable.id_category"
+					destinCol "Payments.id_category"
+				},
+				Association {
+					originCol "EmployeeJoinCategoryJoinSumWorkedHoursTable.name_category"
+					destinCol "Payments.name_category"
+				},
+				Association {
+					originCol "EmployeeJoinCategoryJoinSumWorkedHoursTable.value_worked_hours"
+					destinCol "Payments.value_worked_hours"
+				},
+				Association {
+					originCol "EmployeeJoinCategoryJoinSumWorkedHoursTable.total_worked_hours"
+					destinCol "Payments.total_worked_hours"
+				}
+			}
+			next TotalPayPerEmployee
+		},
+		Lookup TotalPayPerEmployee {
+			table Payments
+			column "Payments.id_employee"
+			lookupTable Payments
+			matchColumn "Payments.id_employee"
+			operandColumn "Payments.value_worked_hours"
+			lookupColumn "Payments.total_worked_hours"
+			operation NUMERIC_MULTIPLY
+			resultTable Payments
+			resultColumn "Payments.payment"
+			next MoveToPaymentsFinal
+		},
+		AppendRows MoveToPaymentsFinal {
+			originTable Payments
+			destinTable PaymentsFinal
+			associations {
+				Association {
+					originCol "Payments.id_employee"
+					destinCol "PaymentsFinal.id_employee"
+				},
+				Association {
+					originCol "Payments.name_employee"
+					destinCol "PaymentsFinal.name_employee"
+				},
+				Association {
+					originCol "Payments.id_category"
+					destinCol "PaymentsFinal.id_category"
+				},
+				Association {
+					originCol "Payments.name_category"
+					destinCol "PaymentsFinal.name_category"
+				},
+				Association {
+					originCol "Payments.payment"
+					destinCol "PaymentsFinal.payment"
+				}
+			}
+			next SavePaymentsFinalTable
+		},
+		Save SavePaymentsFinalTable { 
+			tablesToSave { 
+				TableToSave { 
+					path "./output-salary.csv" 
+					table PaymentsFinal
+					columnsNames { 
+						id_employee, name_employee, id_category, name_category, payment
+					}
+				} 
+			}
+		} 
+	} 
+}

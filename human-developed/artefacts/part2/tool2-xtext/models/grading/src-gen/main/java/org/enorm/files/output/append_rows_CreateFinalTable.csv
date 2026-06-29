@@ -1,0 +1,21 @@
+id_student,id_course,grade,name_course
+1,1,85,Mathematics
+2,2,90,Physics
+3,3,75,Chemistry
+4,4,80,Biology
+5,5,95,English
+2,1,87,Mathematics
+3,2,91,Physics
+4,3,76,Chemistry
+5,4,89,Biology
+1,10,99,Physical Education
+1,6,88,History
+2,7,92,Computer Science
+3,8,78,Art
+4,9,85,Music
+5,10,98,Physical Education
+1,5,93,English
+2,6,90,History
+3,7,94,Computer Science
+4,8,82,Art
+5,9,97,Music

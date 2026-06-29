@@ -1,0 +1,27 @@
+[comment encoding = UTF-8 /]
+[module steps('http://www.example.org/excelltsmetamodel')]
+
+[import excelltsmetamodel::acceleo::main::files::filters::appendrows /]
+[import excelltsmetamodel::acceleo::main::files::filters::filter /]
+[import excelltsmetamodel::acceleo::main::files::filters::groupby /]
+[import excelltsmetamodel::acceleo::main::files::filters::importstep /]
+[import excelltsmetamodel::acceleo::main::files::filters::join /]
+[import excelltsmetamodel::acceleo::main::files::filters::lookup /]
+[import excelltsmetamodel::acceleo::main::files::filters::removeduplicates /]
+[import excelltsmetamodel::acceleo::main::files::filters::save /]
+[import excelltsmetamodel::acceleo::main::files::filters::sort /]
+
+[template public generateSteps(aModel : Model)]
+
+[aModel.generateStepsAppendRow(aModel)/]
+[aModel.generateStepsFilterStep(aModel)/]
+[aModel.generateStepsGroupByStep(aModel)/]
+[aModel.generateStepsImportStep(aModel)/]
+[aModel.generateStepsJoinStep(aModel)/]
+[aModel.generateStepsLookupStep(aModel)/]
+[aModel.generateStepsRemoveDuplicatesStep(aModel)/]
+[aModel.generateStepsSaveStep(aModel)/]
+[aModel.generateStepsSortStep(aModel)/]
+
+
+[/template]

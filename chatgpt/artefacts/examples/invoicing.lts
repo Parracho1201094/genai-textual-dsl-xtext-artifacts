@@ -1,0 +1,63 @@
+process Invoicing {
+  load clients from csv "data/invoicing/clients.csv" header true delimiter ","
+  columns {
+    id: int
+    name: string
+    taxNumber: string
+  }
+
+  load products from csv "data/invoicing/products.csv" header true delimiter ","
+  columns {
+    id: int
+    name: string
+    unitPrice: decimal
+  }
+
+  load sales from csv "data/invoicing/sales.csv" header true delimiter ","
+  columns {
+    clientId: int
+    productId: int
+    quantity: decimal
+    saleDate: date
+  }
+
+  remove duplicates from clients by id
+  remove duplicates from products by id
+  filter sales where quantity > 0
+
+  join sales with products on productId = id add {
+    name as productName
+    unitPrice as unitPrice
+  }
+
+  set sales.lineTotal : decimal = quantity * unitPrice
+
+  aggregate sales into invoiceTotals by clientId add {
+    sum(lineTotal) as totalValue: decimal
+  }
+
+  create invoices columns {
+    clientId: int
+    clientName: string
+    taxNumber: string
+    totalValue: decimal
+    description: string
+  }
+
+  copy invoiceTotals to invoices map {
+    clientId -> clientId
+    totalValue -> totalValue
+  }
+
+  join invoices with clients on clientId = id add {
+    name as clientName
+    taxNumber as taxNumber
+  }
+
+  set invoices.description : string = concat("Invoice for ", clientName)
+  filter invoices where totalValue > 0
+  sort invoices by clientName asc
+
+  save invoices to csv "out/invoicing/invoices.csv" header true
+  save log to "out/invoicing/invoicing.log"
+}

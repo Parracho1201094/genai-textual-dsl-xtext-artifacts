@@ -1,0 +1,88 @@
+/*
+ * Invoicing ETL Process
+ * Demonstrates: load, join, aggregate, group, calculate columns, save
+ */
+process InvoicingProcess {
+	// Define CSV data sources
+	csv source clients from "clients.csv" {
+		client_id: Integer,
+		client_name: String,
+		contact_email: String
+	}
+	
+	csv source products from "products.csv" {
+		product_id: Integer,
+		product_name: String,
+		unit_price: Decimal
+	}
+	
+	csv source sales from "sales.csv" {
+		sale_id: Integer,
+		client_id: Integer,
+		product_id: Integer,
+		quantity: Integer,
+		sale_date: Date
+	}
+	
+	// Define working tables
+	table sales_details {
+		sale_id: Integer,
+		client_id: Integer,
+		client_name: String,
+		product_id: Integer,
+		product_name: String,
+		unit_price: Decimal,
+		quantity: Integer,
+		line_total: Decimal,
+		sale_date: Date
+	}
+	
+	table invoices {
+		client_id: Integer,
+		client_name: String,
+		total_invoice_amount: Decimal,
+		invoice_count: Integer,
+		last_sale_date: Date
+	}
+	
+	// All transformation operations
+	operations {
+		// Load and join sales with clients
+		load sales_details from sales copy all columns;
+		
+		join sales_details clients on sales_details.client_id = clients.client_id
+			preserving left;
+		
+		// Join sales with products to get unit prices
+		join sales_details products on sales_details.product_id = products.product_id
+			preserving left;
+		
+		// Calculate line total = quantity * unit_price
+		calculate column line_total in sales_details of type Decimal
+			as quantity * unit_price;
+		
+		// Remove duplicate sales records if any
+		remove duplicates from sales_details based on sale_id;
+		
+		// Group by client to generate invoices
+		group sales_details by client_id {
+			client_name: first(client_name),
+			total_invoice_amount: sum(line_total),
+			invoice_count: count(sale_id),
+			last_sale_date: max(sale_date)
+		};
+		
+		// Filter invoices with value greater than zero
+		filter invoices where total_invoice_amount > 0.0;
+		
+		// Sort by total invoice amount descending
+		sort invoices by total_invoice_amount descending;
+	}
+	
+	// Output block
+	output {
+		save invoices to "invoices.csv";
+		save sales_details to "sales_details_report.csv";
+		save log to "invoicing_process.log" with warnings, errors, info;
+	}
+}

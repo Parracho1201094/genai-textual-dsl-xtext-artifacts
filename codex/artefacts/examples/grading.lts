@@ -1,0 +1,79 @@
+process Grading {
+    input students from csv "data/students.csv" header true {
+        studentId: integer required;
+        studentName: string required;
+    }
+
+    input courses from csv "data/courses.csv" header true {
+        courseId: integer required;
+        courseName: string required;
+    }
+
+    input exams from csv "data/exams.csv" header true {
+        studentId: integer required;
+        courseId: integer required;
+        grade: decimal required;
+        weight: decimal required;
+    }
+
+    table examLines {
+        studentId: integer required;
+        studentName: string;
+        courseId: integer required;
+        courseName: string;
+        weightedGrade: decimal;
+        weight: decimal;
+    }
+
+    table grades {
+        studentId: integer required;
+        studentName: string required;
+        courseId: integer required;
+        courseName: string required;
+        finalGrade: decimal required;
+    }
+
+    output gradesCsv table grades to csv "out/final-grades.csv" header true;
+    log processLog to "out/grading.log" levels warnings, errors;
+
+    steps {
+        load students;
+        load courses;
+        load exams;
+
+        create empty examLines;
+        append rows from exams to examLines map {
+            examLines.studentId = exams.studentId;
+            examLines.courseId = exams.courseId;
+            examLines.weight = exams.weight;
+            examLines.weightedGrade = exams.grade * exams.weight;
+        };
+
+        join examLines left with students
+            on examLines.studentId = students.studentId
+            select {
+                examLines.studentName = students.studentName;
+            };
+
+        join examLines left with courses
+            on examLines.courseId = courses.courseId
+            select {
+                examLines.courseName = courses.courseName;
+            };
+
+        create empty grades;
+        group examLines into grades
+            by examLines.studentId, examLines.courseId
+            aggregate {
+                grades.studentId = first(examLines.studentId);
+                grades.studentName = first(examLines.studentName);
+                grades.courseId = first(examLines.courseId);
+                grades.courseName = first(examLines.courseName);
+                grades.finalGrade = sum(examLines.weightedGrade) / sum(examLines.weight);
+            };
+
+        sort grades by grades.studentId ascending, grades.courseId ascending;
+        save grades to gradesCsv;
+        save log processLog;
+    }
+}

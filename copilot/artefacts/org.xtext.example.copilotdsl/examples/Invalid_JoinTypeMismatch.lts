@@ -1,0 +1,34 @@
+/*
+ * Invalid Example 5: Incompatible Data Types in Join
+ * Error: Trying to join tables on columns with different data types
+ */
+process InvalidJoinTypesMismatch {
+	csv source employees from "employees.csv" {
+		id: Integer,
+		name: String
+	}
+	
+	csv source departments from "departments.csv" {
+		dept_code: String,
+		dept_name: String
+	}
+	
+	table merged {
+		id: Integer,
+		name: String,
+		dept_code: String,
+		dept_name: String
+	}
+	
+	operations {
+		load merged from employees copy all columns;
+		
+		// ERROR: Joining Integer (id) with String (dept_code)
+		join merged departments on merged.id = departments.dept_code;
+	}
+	
+	output {
+		save merged to "output.csv";
+		save log to "log.txt" with warnings, errors;
+	}
+}

@@ -1,0 +1,121 @@
+Salary
+	logs: true
+	tables:
+		Employees :                                                                                                     
+	        id_employee as NUMBER                                                                                         
+	        name_employee as TEXT                                                                                         
+	        id_category as NUMBER                                                                                         
+                                                                                                                      
+        Categories :                                                                                                    
+	        id_category as NUMBER                                                                                         
+	        name_category as TEXT                                                                                         
+	        value_worked_hours as NUMBER                                                                                  
+                                                                                                                      
+        WorkedHours :                                                                                                   
+	        id_employee as NUMBER                                                                                         
+	        date as DATE                                                                                                  
+	        worked_hours as NUMBER                                                                                        
+                                                                                                                      
+        EmployeeJoinCategory :                                                                                          
+	        id_employee as NUMBER                                                                                         
+	        name_employee as TEXT                                                                                         
+	        id_category as NUMBER                                                                                         
+	        name_category as TEXT                                                                                         
+	        value_worked_hours as NUMBER                                                                                  
+                                                                                                                      
+        SumWorkedHours :                                                                                                
+	        id_employee as NUMBER                                                                                         
+	        worked_hours as NUMBER                                                                                        
+                                                                                                                      
+        EmployeeJoinCategoryJoinSumWorkedHours :                                                                        
+	        id_employee as NUMBER                                                                                         
+	        name_employee as TEXT                                                                                         
+	        id_category as NUMBER                                                                                         
+	        name_category as TEXT                                                                                         
+	        value_worked_hours as NUMBER                                                                                  
+	        worked_hours as NUMBER                                                                                        
+                                                                                                                      
+        Payments :                                                                                                      
+	        id_employee as NUMBER                                                                                         
+	        name_employee as TEXT                                                                                         
+	        id_category as NUMBER                                                                                         
+	        name_category as TEXT                                                                                         
+	        value_worked_hours as NUMBER                                                                                  
+	        total_worked_hours as NUMBER                                                                                  
+	        payment as NUMBER                                                                                             
+                                                                                                                      
+        PaymentsFinal :                                                                                                 
+	        id_employee as NUMBER                                                                                         
+	        name_employee as TEXT                                                                                         
+	        id_category as NUMBER                                                                                         
+	        name_category as TEXT                                                                                         
+	        payment as NUMBER               
+		
+	steps:
+		IMPORT "Import" -> "SortByEmployeeId":
+			IMPORT FROM "/employees.csv" TO Employees WITH DELIMITER "," AND DELETE_MISMATCHED_TYPES AS false
+			IMPORT FROM "/categories.csv" TO Categories WITH DELIMITER "," AND DELETE_MISMATCHED_TYPES AS false
+			IMPORT FROM "/workedhours.csv" TO WorkedHours WITH DELIMITER "," AND DELETE_MISMATCHED_TYPES AS false
+			
+		SORT "SortByEmployeeId" -> "RemoveDuplicatedEmployeeIds":
+			ON Employees("Employees.id_employee") BY ORDER DESC
+			
+		REMOVE_DUPLICATES "RemoveDuplicatedEmployeeIds" -> "EmployeeWithCategory":
+			ON Employees("Employees.id_employee")
+			
+		JOIN INNER "EmployeeWithCategory" -> "EmployeeIdAndSumWorkedHours":
+			ON Employees("Employees.id_category") WITH Categories("Categories.id_category")
+			SELECTING
+				"Employees.id_employee", 
+				"Employees.name_employee",
+				"Categories.id_category",
+				"Categories.name_category",
+				"Categories.value_worked_hours"
+			INTO EmployeeJoinCategory
+				
+		GROUP_BY "EmployeeIdAndSumWorkedHours" -> "EmployeeJoinCategoryJoinSumWorkedHours":
+			ON WorkedHours("WorkedHours.id_employee") AND SUM "WorkedHours.worked_hours"
+			INTO SumWorkedHours("SumWorkedHours.worked_hours")
+			
+		JOIN INNER "EmployeeJoinCategoryJoinSumWorkedHours"  ->  "MoveToPaymentsTable":                             
+	        ON EmployeeJoinCategory("EmployeeJoinCategory.id_employee") WITH SumWorkedHours("SumWorkedHours.id_employee")                                   
+	        SELECTING
+				"EmployeeJoinCategory.id_employee",  
+				"EmployeeJoinCategory.id_category",  
+				"EmployeeJoinCategory.name_employee",  
+				"EmployeeJoinCategory.name_category",  
+				"EmployeeJoinCategory.value_worked_hours",
+				"SumWorkedHours.worked_hours" 
+	        INTO EmployeeJoinCategoryJoinSumWorkedHours  
+	        
+	    APPEND_ROWS "MoveToPaymentsTable"  ->  "TotalPayPerEmployee":                                               
+        FROM EmployeeJoinCategoryJoinSumWorkedHours TO Payments                                                       
+        MAPPING :                                                                                                     
+	        "EmployeeJoinCategoryJoinSumWorkedHours.id_employee" TO "Payments.id_employee"                                                                                 
+	        "EmployeeJoinCategoryJoinSumWorkedHours.name_employee" TO "Payments.name_employee"                                                                              
+	        "EmployeeJoinCategoryJoinSumWorkedHours.id_category" TO "Payments.id_category"                                                                                  
+	        "EmployeeJoinCategoryJoinSumWorkedHours.name_category" TO "Payments.name_category"                                                                              
+	        "EmployeeJoinCategoryJoinSumWorkedHours.value_worked_hours" TO "Payments.value_worked_hours"                                                                    
+	        "EmployeeJoinCategoryJoinSumWorkedHours.worked_hours" TO "Payments.total_worked_hours" 
+          
+	    LOOKUP "TotalPayPerEmployee"  ->  "MoveToPaymentsFinal":                                                    
+	        FROM Payments("Payments.id_employee") TO Payments("Payments.id_employee")                                                     
+	        AND PUT NUMERIC_MULTIPLY ("Payments.value_worked_hours", "Payments.total_worked_hours")                                          
+	        INTO Payments("Payments.payment") 
+		
+		APPEND_ROWS "MoveToPaymentsFinal" -> "SavePaymentsFinalTable":
+			FROM "Payments" TO "PaymentsFinal"
+			MAPPING:
+				"Payments.id_employee" TO "PaymentsFinal.id_employee"                                                                                 
+		        "Payments.name_employee" TO "PaymentsFinal.name_employee"                                                                            
+		        "Payments.id_category" TO "PaymentsFinal.id_category"                                                                                
+		        "Payments.name_category" TO "PaymentsFinal.name_category"                                                                            
+		        "Payments.payment" TO "PaymentsFinal.payment"                                                                   
+
+		SAVE "SavePaymentsFinalTable":
+			PaymentsFinal("id_employee", "name_employee", "id_category", "name_category", "payment") TO "output-salary"
+			
+			
+			
+			
+			

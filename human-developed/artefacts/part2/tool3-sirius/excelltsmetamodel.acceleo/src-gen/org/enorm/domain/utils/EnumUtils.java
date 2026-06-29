@@ -1,0 +1,44 @@
+package org.enorm.domain.utils;
+
+import org.enorm.domain.enums.DataType;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+
+public class EnumUtils {
+
+	public static Object parseValue(String value, DataType dataType) {
+		return switch (dataType) {
+			case NUMBER -> parseNumber(value);
+			case TEXT -> value;
+			case DATE -> parseDate(value);
+		};
+	}
+
+	private static Object parseNumber(String value) {
+		try {
+			if (value.contains(".")) {
+				return Double.parseDouble(value);
+			} else {
+				return Integer.parseInt(value);
+			}
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Invalid number format: " + value, e);
+		}
+	}
+
+	private static Object parseDate(String value) {
+		try {
+			DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE;
+			return LocalDate.parse(value, formatter);
+		} catch (DateTimeParseException e) {
+			throw new IllegalArgumentException("Invalid date format: " + value, e);
+		}
+	}
+
+	public static boolean allIntegers(List<Object> values) {
+		return values.stream().allMatch(e -> e instanceof Integer);
+	}
+}

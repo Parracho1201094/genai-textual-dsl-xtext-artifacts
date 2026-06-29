@@ -1,0 +1,129 @@
+@startuml
+digraph model {
+	subgraph tier1 {
+	    node [color="#99ff99",style="filled",group="tier1"]
+	    "Students"
+	    "Courses"
+	    "Grades"
+	}
+	subgraph tier2 {
+	    node [color="lightyellow",style="filled",group="tier2"]
+	    "GradesAverage"
+	    "Final"
+	    "GradesAverageJoinCourses"
+	}
+	subgraph tier3 {
+	    node [color="lightblue",style="filled",group="tier3"]
+	    "LoadTables"
+	    "RemoveDuplicatedGradeIds"
+	    "GroupStudentsToGetAVGNotes"
+	    "JoinWithCoursesToGetName"
+	    "CreateFinalTable"
+	    "ConcatFirstAndLastStudentNames"
+	    "SaveFinalTable"
+	}
+"Students" [shape=box, label="Table: Students\n
+id_student: NUMBER
+first_name: TEXT
+last_name: TEXT
+"]
+"Courses" [shape=box, label="Table: Courses\n
+id_course: NUMBER
+name_course: TEXT
+id_student: NUMBER
+"]
+"Grades" [shape=box, label="Table: Grades\n
+id_grade: NUMBER
+id_course: NUMBER
+id_student: NUMBER
+grade: NUMBER
+"]
+"GradesAverage" [shape=box, label="Table: GradesAverage\n
+id_student: NUMBER
+id_course: NUMBER
+avg_grade: NUMBER
+"]
+"GradesAverageJoinCourses" [shape=box, label="Table: GradesAverageJoinCourses\n
+id_student: NUMBER
+id_course: NUMBER
+avg_grade: NUMBER
+name_course: TEXT
+"]
+"Final" [shape=box, label="Table: Final\n
+id_student: NUMBER
+id_course: NUMBER
+avg_grade: NUMBER
+name_course: TEXT
+name_student: TEXT
+"]
+"LoadTables" [shape=box, label="Type = Import\n
+Name = LoadTables
+Description = 
+Tables = Students (./students.csv) delimited by ',' Delete Mismatched Types = true
+Courses (./courses.csv) delimited by ',' Delete Mismatched Types = true
+Grades (./grades.csv) delimited by ',' Delete Mismatched Types = true
+"]
+"RemoveDuplicatedGradeIds" [shape=box, label="Type = Remove Duplicates\n
+Name = RemoveDuplicatedGradeIds
+Description = 
+From Table = Grades
+"]
+"GroupStudentsToGetAVGNotes" [shape=box, label="Type = Group by\n
+Name = GroupStudentsToGetAVGNotes
+Description = 
+From Table = Grades
+Result Table = GradesAverage
+Result Column = avg_grade
+"]
+"JoinWithCoursesToGetName" [shape=box, label="Type = Join\n
+Name = JoinWithCoursesToGetName
+Description = 
+Table Left = GradesAverage
+Table Right = Courses
+Type = INNER
+Condition = id_course ON id_course
+Select Columns = id_student, id_course, avg_grade, name_course
+"]
+"CreateFinalTable" [shape=box, label="Type = Append Rows\n
+Name = CreateFinalTable
+Description = 
+From Table = GradesAverageJoinCourses
+Result Table = Final
+"]
+"CreateFinalTable' associations" [shape=box, label="CreateFinalTable' associations\n
+GradesAverageJoinCourses.id_student -> Final.id_student
+GradesAverageJoinCourses.id_course -> Final.id_course
+GradesAverageJoinCourses.avg_grade -> Final.avg_grade
+GradesAverageJoinCourses.name_course -> Final.name_course
+"]
+"ConcatFirstAndLastStudentNames" [shape=box, label="Type = Concat\n
+Name = ConcatFirstAndLastStudentNames
+Description = 
+Base Table = Students
+Source A = first_name
+Source B = last_name
+Result Column = name_student
+Result Table = Final
+"]
+"SaveFinalTable" [shape=box, label="Type = Save\n
+Name = SaveFinalTable
+Description = 
+Tables = Final(./output-grading.csv)
+"]
+"LoadTables" -> "RemoveDuplicatedGradeIds" [label="Next"]
+"Students" -> "LoadTables" [label="Imported"]
+"Courses" -> "LoadTables" [label="Imported"]
+"Grades" -> "LoadTables" [label="Imported"]
+"RemoveDuplicatedGradeIds" -> "GroupStudentsToGetAVGNotes" [label="Next"]
+"GroupStudentsToGetAVGNotes" -> "JoinWithCoursesToGetName" [label="Next"]
+"GroupStudentsToGetAVGNotes" -> "GradesAverage" [label="Produces"]
+"JoinWithCoursesToGetName" -> "CreateFinalTable" [label="Next"]
+"JoinWithCoursesToGetName" -> "GradesAverageJoinCourses" [label="Produces"]
+"CreateFinalTable" -> "ConcatFirstAndLastStudentNames" [label="Next"]
+"CreateFinalTable" -> "Final" [label="Produces"]
+"CreateFinalTable" -> "CreateFinalTable' associations" [label="Map as"]
+"ConcatFirstAndLastStudentNames" -> "SaveFinalTable" [label="Next"]
+"ConcatFirstAndLastStudentNames" -> "Final" [label="Writes on"]
+"SaveFinalTable" -> "Final" [label="Saves"]
+}
+@enduml

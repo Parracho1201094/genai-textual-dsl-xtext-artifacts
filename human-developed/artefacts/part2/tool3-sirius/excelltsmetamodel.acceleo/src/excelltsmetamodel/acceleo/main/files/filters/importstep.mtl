@@ -1,0 +1,112 @@
+[comment encoding = UTF-8 /]
+[module importstep('http://www.example.org/excelltsmetamodel')]
+
+[template public generateStepsImportStep(aModel : Model)]
+[aModel.generateImportStepDefault()/]
+[aModel.generateFactoryImportStep()/]
+[aModel.generateIImportStep()/]
+[/template]
+
+[template private generateImportStepDefault(aModel : Model)]
+[file ('org/enorm/domain/steps/importStep/ImportStepDefault.java', false, 'UTF-8')]
+package org.enorm.domain.steps.importStep;
+
+import org.enorm.domain.tables.Column;
+import org.enorm.domain.tables.Table;
+import org.enorm.domain.tables.factories.FactoryTable;
+import org.enorm.domain.utils.EnumUtils;
+[if (aModel.logs)]
+import org.enorm.Logger;
+[/if]
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+
+public class ImportStepDefault implements IImportStep {
+
+    @Override
+    public Table apply(FactoryTable factoryTable, String path, String delimiter, boolean deleteMismatchedTypes) {
+        Table resultTable = factoryTable.generateTable();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(path))) {
+            String headerLine = br.readLine();
+            if (headerLine == null) {
+[if (aModel.logs)]
+              	Logger.log(Logger.LogLevel.ERROR, "CSV file is empty.");
+[/if]
+                throw new IOException("CSV file is empty");
+            }
+
+            String['[]'/] headers = headerLine.split(delimiter);
+            if (headers.length != resultTable.getColumnList().size()) {
+[if (aModel.logs)]
+             	Logger.log(Logger.LogLevel.ERROR, "CSV header does not match the table's column list.");
+[/if]
+                throw new IOException("CSV header does not match the table's column list");
+            }
+
+            String line;
+            int rowIndex = 1;
+            while ((line = br.readLine()) != null) {
+                String['[]'/] values = line.split(delimiter);
+                for (int i = 0; i < values.length; i++) {
+                    Column column = resultTable.getColumnList().get(i);
+                    try {
+                        Object value = EnumUtils.parseValue(values['[i]'/], column.type());
+                        resultTable.getColumnInfo().get(column).put(rowIndex, value);
+                    } catch (Exception e) {
+					[if (aModel.logs)]
+					Logger.log(Logger.LogLevel.ERROR, "Error in ImportStepDefault: " + e);
+					[/if]
+                    }
+                }
+                rowIndex++;
+            }
+            return resultTable;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+}
+
+[/file]
+[/template]
+
+[template private generateFactoryImportStep(aModel : Model)]
+[file ('org/enorm/domain/steps/importStep/FactoryImportStep.java', false, 'UTF-8')]
+package org.enorm.domain.steps.importStep;
+
+public class FactoryImportStep {
+
+    private static IImportStep step;
+
+    public static void setStep(IImportStep s) {
+        step = s;
+    }
+
+    public static IImportStep getStep() {
+        return step;
+    }
+}
+
+[/file]
+[/template]
+
+[template private generateIImportStep(aModel : Model)]
+[file ('org/enorm/domain/steps/importStep/IImportStep.java', false, 'UTF-8')]
+package org.enorm.domain.steps.importStep;
+
+import org.enorm.domain.tables.Table;
+import org.enorm.domain.tables.factories.FactoryTable;
+
+public interface IImportStep {
+    /**
+     * Loads the data from a csv
+     */
+    Table apply(FactoryTable factoryTable, String path, String delimiter, boolean deleteMismatchedTypes);
+}
+
+[/file]
+[/template]

@@ -1,0 +1,65 @@
+process Salary {
+  load employee from csv "data/salary/employees.csv" header true delimiter ","
+  columns {
+    id: int
+    name: string
+    categoryId: int
+  }
+
+  load workedHours from csv "data/salary/worked_hours.csv" header true delimiter ","
+  columns {
+    employeeId: int
+    date: date
+    hours: decimal
+  }
+
+  load category from csv "data/salary/categories.csv" header true delimiter ","
+  columns {
+    id: int
+    name: string
+    hourValue: decimal
+  }
+
+  sort employee by id asc
+  remove duplicates from employee by id
+
+  aggregate workedHours into hoursByEmployee by employeeId add {
+    sum(hours) as workedHours: decimal
+  }
+
+  create payments columns {
+    employeeId: int
+    employeeName: string
+    categoryId: int
+    categoryName: string
+    hourValue: decimal
+    workedHours: decimal
+    payment: decimal
+    label: string
+  }
+
+  copy employee to payments map {
+    id -> employeeId
+    name -> employeeName
+    categoryId -> categoryId
+  }
+
+  join payments with category on categoryId = id add {
+    name as categoryName
+    hourValue as hourValue
+  }
+
+  join payments with hoursByEmployee on employeeId = employeeId add {
+    workedHours as workedHours
+  }
+
+  set payments.payment : decimal = workedHours * hourValue
+  set payments.label : string = concat(employeeName, " / ", categoryName)
+
+  filter payments where payment > 0
+  drop columns hourValue, workedHours from payments
+  sort payments by employeeName asc
+
+  save payments to csv "out/salary/payments.csv" header true
+  save log to "out/salary/salary.log"
+}

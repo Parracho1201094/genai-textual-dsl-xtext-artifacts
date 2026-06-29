@@ -1,0 +1,92 @@
+/* 
+ * Salary Processing ETL Process
+ * Demonstrates: load, join, group, aggregate, remove duplicates, calculate columns, save
+ */
+process SalaryProcess {
+	// Define CSV data sources
+	csv source employees from "employees.csv" {
+		id: Integer,
+		name: String,
+		salary: Decimal,
+		department: String
+	}
+	
+	csv source worked_hours from "worked_hours.csv" {
+		employee_id: Integer,
+		hours_worked: Decimal,
+		month: String
+	}
+	
+	csv source categories from "categories.csv" {
+		department: String,
+		category_multiplier: Decimal
+	}
+	
+	// Define working tables
+	table employees_copy {
+		id: Integer,
+		name: String,
+		salary: Decimal,
+		department: String
+	}
+	
+	table payments {
+		id: Integer,
+		name: String,
+		base_salary: Decimal,
+		department: String,
+		total_hours: Decimal,
+		category_multiplier: Decimal,
+		final_payment: Decimal
+	}
+	
+	table summary {
+		department: String,
+		total_paid: Decimal,
+		employee_count: Integer
+	}
+	
+	// All transformation operations
+	operations {
+		// Load employee data
+		load employees_copy from employees copy all columns;
+		
+		// Remove duplicate employees (keep only one record per employee ID)
+		remove duplicates from employees_copy based on id;
+		
+		// Sort employees by ID
+		sort employees_copy by id ascending;
+		
+		// Join with worked hours to get total hours (with SUM aggregation)
+		join employees_copy worked_hours on employees_copy.id = worked_hours.employee_id
+			preserving left
+			with total_hours: sum(worked_hours.hours_worked);
+		
+		// Join with categories to get multiplier
+		join employees_copy categories on employees_copy.department = categories.department;
+		
+		// Calculate final payment = base_salary * category_multiplier * (1 + total_hours/100)
+		calculate column final_payment in employees_copy of type Decimal
+			as base_salary * category_multiplier * (1.0 + (total_hours / 100.0));
+		
+		// Remove temporary columns
+		remove column total_hours from employees_copy;
+		remove column category_multiplier from employees_copy;
+		
+		// Aggregate to create summary by department
+		group employees_copy by department {
+			total_paid: sum(final_payment),
+			employee_count: count(id)
+		};
+		
+		// Filter out departments with very low payments
+		filter employees_copy where final_payment > 500.0;
+	}
+	
+	// Output block
+	output {
+		save employees_copy to "payments.csv";
+		save payments to "payment_details.csv";
+		save log to "salary_process.log" with warnings, errors;
+	}
+}

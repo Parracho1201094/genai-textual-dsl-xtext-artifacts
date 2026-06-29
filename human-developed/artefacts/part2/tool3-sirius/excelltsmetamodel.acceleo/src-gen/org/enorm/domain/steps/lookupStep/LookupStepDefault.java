@@ -1,0 +1,74 @@
+package org.enorm.domain.steps.lookupStep;
+
+import org.enorm.domain.enums.LookupOperationType;
+import org.enorm.domain.tables.Column;
+import org.enorm.domain.tables.Table;
+import org.enorm.domain.tables.factories.FactoryTable;
+
+import java.util.Map;
+
+public class LookupStepDefault implements ILookupStep {
+
+    @Override
+    public Table apply(Table inputTable, Column inputMatchColumn, Table lookupTable, Column lookupMatchColumn,
+                       Column inputOperandColumn, Column lookupOperandColumn, LookupOperationType LookupOperationType,
+                       String resultTableName, FactoryTable factoryTable) {
+
+        boolean isSameTable = inputTable == lookupTable;
+
+        Table resultTable = factoryTable.generateTable();
+        Column resultColumn = resultTable.getColumnByName(resultTableName);
+        int newLineCounter = 1;
+
+        for (int lineIndex1 = 1; lineIndex1 <= inputTable.getNumLines(); lineIndex1++) {
+            Map<Column, Object> inputLineInfo = inputTable.getLineInfo(lineIndex1);
+            Object inputMatchValue = inputLineInfo.get(inputMatchColumn);
+
+            for (int lineIndex2 = 1; lineIndex2 <= (isSameTable ? lineIndex1 : lookupTable.getNumLines()); lineIndex2++) {
+                Map<Column, Object> lookupLineInfo = lookupTable.getLineInfo(lineIndex2);
+                Object lookupMatchValue = lookupLineInfo.get(lookupMatchColumn);
+
+                if (inputMatchValue.equals(lookupMatchValue)) {
+                    Object inputOperandValue = inputLineInfo.get(inputOperandColumn);
+                    Object lookupOperandValue = lookupLineInfo.get(lookupOperandColumn);
+
+                    Object resultValue = applyOperation(inputOperandValue, lookupOperandValue, LookupOperationType);
+
+                    for (Column column : inputLineInfo.keySet()) {
+                        resultTable.getColumnInfo().get(column).put(newLineCounter, inputLineInfo.get(column));
+                    }
+
+                    resultTable.getColumnInfo().get(resultColumn).put(newLineCounter, resultValue);
+                    newLineCounter++;
+
+                    if (isSameTable) break;
+                }
+            }
+        }
+        return resultTable;
+    }
+
+    private Object applyOperation(Object value1, Object value2, LookupOperationType operation) {
+        if (value1 instanceof Number num1 && value2 instanceof Number num2) {
+            double doubleValue1 = num1.doubleValue();
+            double doubleValue2 = num2.doubleValue();
+            return switch (operation) {
+                case NUMERIC_SUM -> doubleValue1 + doubleValue2;
+                case NUMERIC_SUBTRACT -> doubleValue1 - doubleValue2;
+                case NUMERIC_MULTIPLY -> doubleValue1 * doubleValue2;
+                case NUMERIC_DIVIDE -> doubleValue1 / doubleValue2;
+                default -> throw new IllegalArgumentException("Unsupported operation for numeric values: " + operation);
+            };
+        } else if (value1 instanceof String str1 && value2 instanceof String str2) {
+            if (operation == LookupOperationType.TEXT_CONCAT) {
+                return str1 + str2;
+            } else {
+                throw new IllegalArgumentException("Unsupported operation for text values: " + operation);
+            }
+        } else {
+            throw new IllegalArgumentException("Unsupported data types for operation: " + value1.getClass() + " and " +
+                    value2.getClass());
+        }
+    }
+}
+

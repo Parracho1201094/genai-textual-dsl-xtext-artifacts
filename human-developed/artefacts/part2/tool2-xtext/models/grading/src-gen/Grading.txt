@@ -1,0 +1,47 @@
+Grading:
+ tables:
+  Students:
+   id_student as NUMBER
+   first_name as TEXT
+   last_name as TEXT
+  Courses:
+   id_course as NUMBER
+   name_course as TEXT
+   id_student as NUMBER
+  Grades:
+   id_grade as NUMBER
+   id_course as NUMBER
+   id_student as NUMBER
+   grade as NUMBER
+  GradesAverage:
+   id_student as NUMBER
+   id_course as NUMBER
+   grade as NUMBER
+  GradesAverageJoinCourses:
+   id_student as NUMBER
+   id_course as NUMBER
+   grade as NUMBER
+   name_course as TEXT
+  Final:
+   id_student as NUMBER
+   id_course as NUMBER
+   grade as NUMBER
+   name_course as TEXT
+  JoinFinalTableWithStudent:
+   id_student as NUMBER
+   id_course as NUMBER
+   grade as NUMBER
+   name_course as TEXT
+   first_name as TEXT
+ steps:
+  IMPORT:
+   IMPORT FROM "./students.csv" TO Students WITH DELIMITER "," AND DELETE_MISTMATCHED_TYPES AS false
+   IMPORT FROM "./courses.csv" TO Courses WITH DELIMITER "," AND DELETE_MISTMATCHED_TYPES AS false
+   IMPORT FROM "./grades.csv" TO Grades WITH DELIMITER "," AND DELETE_MISTMATCHED_TYPES AS false
+  REMOVE DUPLICATES FROM Grades(id_grade)
+  GROUP Grades BY (id_student, id_course) AND PUT AVERAGE(grade) INTO GradesAverage(grade)
+  INNER JOIN GradesAverage(id_course) WITH Courses(id_course) INTO GradesAverageJoinCourses(id_student, id_course, grade, name_course)
+  APPEND ROWS FROM GradesAverageJoinCourses(id_student, id_course, grade, name_course) TO Final (id_student, id_course, grade, name_course)
+  INNER JOIN Final(id_student) WITH Students(id_student) INTO JoinFinalTableWithStudent(id_student, first_name, id_course, grade, name_course)
+  SAVE:
+   SAVE JoinFinalTableWithStudent(id_student, id_course, grade, name_course, first_name) TO "output-grading"

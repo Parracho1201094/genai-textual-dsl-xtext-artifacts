@@ -1,0 +1,29 @@
+process CustomFunction {
+    external function overtime(hours: decimal, limit: decimal, rate: decimal)
+        : decimal
+        implemented by "com.acme.lts.PayrollFunctions#overtime";
+
+    input hours from csv "data/hours.csv" header true {
+        employeeId: integer required;
+        worked: decimal required;
+    }
+
+    table result {
+        employeeId: integer required;
+        overtimePayment: decimal required;
+    }
+
+    output resultCsv table result to csv "out/overtime.csv" header true;
+    log processLog to "out/overtime.log" levels warnings, errors;
+
+    steps {
+        load hours;
+        create empty result;
+        append rows from hours to result map {
+            result.employeeId = hours.employeeId;
+            result.overtimePayment = overtime(hours.worked, 40.0, 20.0);
+        };
+        save result to resultCsv;
+        save log processLog;
+    }
+}

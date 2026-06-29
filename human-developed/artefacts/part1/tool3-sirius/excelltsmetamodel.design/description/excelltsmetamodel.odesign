@@ -1,0 +1,888 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<description:Group xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:description="http://www.eclipse.org/sirius/description/1.1.0" xmlns:description_1="http://www.eclipse.org/sirius/diagram/description/1.1.0" xmlns:style="http://www.eclipse.org/sirius/diagram/description/style/1.1.0" xmlns:tool="http://www.eclipse.org/sirius/description/tool/1.1.0" xmlns:validation="http://www.eclipse.org/sirius/description/validation/1.1.0" name="LTS" version="12.0.0.2017041100">
+  <ownedViewpoints name="LTS Viewpoint">
+    <ownedRepresentations xsi:type="description_1:DiagramDescription" name="LTS_Model_Diagram" domainClass="excelltsmetamodel::Model" enablePopupBars="true">
+      <metamodel href="http://www.example.org/excelltsmetamodel#/"/>
+      <validationSet name="Validations">
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Model -> Model cannot support multiple imports" level="ERROR" message="The model cannot support multiple imports - it must be only 1" targetClass="excelltsmetamodel::Model">
+          <audits auditExpression="[self.eAllContents(excelltsmetamodel::Import)->size() &lt;= 1/]"/>
+          <fixes name="Remove all the imports in order to stay only one">
+            <initialOperation>
+              <firstModelOperations xsi:type="tool:ChangeContext" browseExpression="aql:self">
+                <subModelOperations xsi:type="tool:Let" valueExpression="service:fixHasMoreThanOneImportStep()"/>
+              </firstModelOperations>
+            </initialOperation>
+          </fixes>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Model -> Model cannot have 0 imports" level="ERROR" message="The model must contain 1 import" targetClass="excelltsmetamodel::Model">
+          <audits auditExpression="[self.eAllContents(excelltsmetamodel::Import)->size() &lt;> 0/]"/>
+          <fixes name="Insert a default Import Step">
+            <initialOperation>
+              <firstModelOperations xsi:type="tool:ChangeContext" browseExpression="aql:self">
+                <subModelOperations xsi:type="tool:Let" valueExpression="service:fixMissingImportStep()"/>
+              </firstModelOperations>
+            </initialOperation>
+          </fixes>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Model -> Model cannot support multiple saves" level="ERROR" message="The model cannot support multiple saves - it must be only 1" targetClass="excelltsmetamodel::Model">
+          <audits auditExpression="[self.eAllContents(excelltsmetamodel::Save)->size() &lt;= 1/]"/>
+          <fixes name="Remove all the saves in order to stay only one">
+            <initialOperation>
+              <firstModelOperations xsi:type="tool:ChangeContext" browseExpression="aql:self">
+                <subModelOperations xsi:type="tool:Let" valueExpression="service:fixHasMoreThanOneSaveStep()"/>
+              </firstModelOperations>
+            </initialOperation>
+          </fixes>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Model -> Model cannot have 0 saves" level="ERROR" message="The model must contain 1 save" targetClass="excelltsmetamodel::Model">
+          <audits auditExpression="[self.eAllContents(excelltsmetamodel::Save)->size() &lt;> 0/]"/>
+          <fixes name="Insert a default Import Step">
+            <initialOperation>
+              <firstModelOperations xsi:type="tool:ChangeContext" browseExpression="aql:self">
+                <subModelOperations xsi:type="tool:Let" valueExpression="service:fixMissingSaveStep()"/>
+              </firstModelOperations>
+            </initialOperation>
+          </fixes>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Model -> Cannot have cycles" level="ERROR" message="The model could have cycles, the Save must be referenced" targetClass="excelltsmetamodel::Model">
+          <audits auditExpression="[if (self.eAllContents(excelltsmetamodel::Import)->size() = 1 and self.eAllContents(excelltsmetamodel::Save)->size() = 1) then self.steps->select(s | s.oclIsTypeOf(excelltsmetamodel::Save) and s.eInverse()->size() > 3)->size() = 1  else true endif /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Model -> Steps have unique names" level="ERROR" message="All steps must have unique names" targetClass="excelltsmetamodel::Model">
+          <audits auditExpression="[self.steps->isUnique(s | s.name)/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Model -> All tables has unique names" level="ERROR" message="aql: 'All tables must have unique names'" targetClass="excelltsmetamodel::Model">
+          <audits auditExpression="[self.tables.name->isUnique( n | n)/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Model -> The import must be the first one" level="ERROR" message="The import must be the first one and it's the only step that cannot have reference because it's the first one" targetClass="excelltsmetamodel::Model">
+          <audits auditExpression="[self.steps->select(s | s.oclIsKindOf(excelltsmetamodel::Step))->select(s | s.eInverse()->size() = 0)->size() = 1 and self.steps->select(s | s.oclIsKindOf(excelltsmetamodel::Import))->select(s | s.eInverse()->size() = 0)->size() = 1 or true /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Model -> Flow step connot reference to itself" level="ERROR" message="['The following steps refer to themselves: ' + self.steps->select(s | s.oclIsKindOf(excelltsmetamodel::FlowStep))->select(s | s.oclAsType(excelltsmetamodel::FlowStep) =  s.oclAsType(excelltsmetamodel::FlowStep).next).name/]" targetClass="excelltsmetamodel::Model">
+          <audits auditExpression="[self.steps->select(s | s.oclIsKindOf(excelltsmetamodel::FlowStep))->select(s | s.oclAsType(excelltsmetamodel::FlowStep) =  s.oclAsType(excelltsmetamodel::FlowStep).next)->size() = 0/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Model -> All steps must be referenced (except import)" level="ERROR" message="aql:'All steps must be referenced (except import), and ' + self.name + ' is not referenced'" targetClass="excelltsmetamodel::Step">
+          <audits auditExpression="[if(self.oclIsTypeOf(excelltsmetamodel::Import)) then true else self.eInverse()->size() > 3 endif/]"/>
+          <fixes name="Remove the step that is not used">
+            <initialOperation>
+              <firstModelOperations xsi:type="tool:ChangeContext" browseExpression="aql:self.ancestors()->first()">
+                <subModelOperations xsi:type="tool:Let" valueExpression="service:fixStepsThatAreNotBeingUsed()"/>
+              </firstModelOperations>
+            </initialOperation>
+          </fixes>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Table -> All tables must be used (referenced)" level="ERROR" message="['The table ' + self.name + ' is not used. All tables must be referenced'/]" targetClass="excelltsmetamodel::Table">
+          <audits auditExpression="[self.eInverse()->size() > 2/]"/>
+          <fixes name="Remove tables that are not being used">
+            <initialOperation>
+              <firstModelOperations xsi:type="tool:ChangeContext" browseExpression="aql:self.ancestors()->first()">
+                <subModelOperations xsi:type="tool:Let" valueExpression="service:fixTablesThatAreNotBeingUsed()"/>
+              </firstModelOperations>
+            </initialOperation>
+          </fixes>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Import -> Tables only can be imported one time" level="ERROR" message="The tables must be imported only one time" targetClass="excelltsmetamodel::Import">
+          <audits auditExpression="[self.tablesToImport.table.name->asSet()->size() = self.tablesToImport->size()/]"/>
+          <fixes name="Remove duplicated tables from the import operation">
+            <initialOperation>
+              <firstModelOperations xsi:type="tool:ChangeContext" browseExpression="aql:self">
+                <subModelOperations xsi:type="tool:Let" valueExpression="service:fixTableCanOnlyBeImportedOneTime()"/>
+              </firstModelOperations>
+            </initialOperation>
+          </fixes>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Import -> Import delimiter must be valid" level="ERROR" message="aql: 'The table to import in ' +  self.table.name + ' cannot have a blank delimiter and must be one char'" targetClass="excelltsmetamodel::TableToImport">
+          <audits auditExpression="[self.delimiter.size() = 1 and not self.delimiter.equalsIgnoreCase('')/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="TableToImport ->Import path must be valid" level="ERROR" message="aql: 'The table to import in ' +  self.table.name + ' cannot have a blank path'" targetClass="excelltsmetamodel::TableToImport">
+          <audits auditExpression="[not self.path.equalsIgnoreCase('')/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Save -> Tables can only be saved one time" level="ERROR" message="The tables must be save only one time" targetClass="excelltsmetamodel::Save">
+          <audits auditExpression="[self.tablesToSave.table.name->asSet()->size() = self.tablesToSave->size()/]"/>
+          <fixes name="Remove duplicated tables from the save operation">
+            <initialOperation>
+              <firstModelOperations xsi:type="tool:ChangeContext" browseExpression="aql:self">
+                <subModelOperations xsi:type="tool:Let" valueExpression="service:fixTableCanOnlyBeSavedOneTime()"/>
+              </firstModelOperations>
+            </initialOperation>
+          </fixes>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Table to save ->Row headers must be equals of number of columns" level="ERROR" message="['The table to save ' + self.table.name + ' doesnt have the number of row headers equals to the number of tables columns'/]" targetClass="excelltsmetamodel::TableToSave">
+          <audits auditExpression="[self.columnsNames->size() = self.table.columns->size()/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Table to save ->Path must be valids" level="ERROR" message="['The table to save ' + self.table.name + ' doesnt have a valid path'/]" targetClass="excelltsmetamodel::TableToSave">
+          <audits auditExpression="[self.path.size() > 1 and self.path.trim().size() > 1]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Table to save ->Row header must be valid and unique" level="ERROR" message="['The table to save ' + self.table.name + ' doesnt have a valid path'/]" targetClass="excelltsmetamodel::TableToSave">
+          <audits auditExpression="[self.columnsNames->select( c | c.trim().size() > 1)->size() = self.columnsNames->size() /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Sort ->The column must belong to table" level="ERROR" message="['In Sort operation, the column must belong to the table and ' + self.column.name + ' does not belong to table ' + self.table.name/]" targetClass="excelltsmetamodel::Sort">
+          <audits auditExpression="[self.table.columns->includes(self.column)/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Remove Duplicates ->The column must belong to table" level="ERROR" message="['In Remove Duplication operation, the column must belong to the table and ' + self.column.name + ' does not belong to table ' + self.table.name/]" targetClass="excelltsmetamodel::RemoveDuplicates">
+          <audits auditExpression="[self.table.columns->includes(self.column)/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Filter ->The column must belong to table" level="ERROR" message="['In Filter operation named: (' + self.name + ' ) the column must belong to the table and ' + self.column.name + ' does not belong to table ' + self.table.name/]" targetClass="excelltsmetamodel::Filter">
+          <audits auditExpression="[self.table.columns->includes(self.column)/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Append Rows ->Destination table must be different from the origin table" level="ERROR" message="['In Append Rows named: (' + self.name + '  ), the destination and origin table must be different'/]" targetClass="excelltsmetamodel::AppendRows">
+          <audits auditExpression="[self.originTable &lt;> self.destinTable/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Append Rows Association ->The destination column and origin column must be of the same type" level="ERROR" message="['In Append Rows operation (' + self.name + ' ), the destination column and origin column not match in'/]" targetClass="excelltsmetamodel::AppendRows">
+          <audits auditExpression="[self.associations.destinCol.dataType = self.associations.originCol.dataType/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Append Rows Association -> The destin columns in association must be in the respective column" level="ERROR" message="['In Append Rows operation (' + self.name + ' ), the destination associated columns must be in the respective destination table'/]" targetClass="excelltsmetamodel::AppendRows">
+          <audits auditExpression="[self.associations.destinCol->select(c | self.destinTable.columns->count(c) = 1 )->size() = self.associations.destinCol->size() /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Append Rows Association -> The origin columns in association must be in the respective column" level="ERROR" message="['In Append Rows operation (' + self.name + ' ), the origin associated columns must be in the respective origin table'/]" targetClass="excelltsmetamodel::AppendRows">
+          <audits auditExpression="[self.associations.originCol->select(c | self.originTable.columns->count(c) = 1 )->size() = self.associations.originCol->size() /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Join -> Righ and Left table must be different " level="ERROR" message="['In Join operation (' + self.name + ' ), the left and right table must be diferent'/]" targetClass="excelltsmetamodel::Join">
+          <audits auditExpression="[self.tableLeft &lt;> self.tableRight/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Join -> Left column must belong to left table" level="ERROR" message="['In Join operation (' + self.name + ' ), the left column must belong to the left table'/]" targetClass="excelltsmetamodel::Join">
+          <audits auditExpression="[self.tableLeft.columns->count(self.columnLeft) = 1 /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Join -> Right column must belong to right table" level="ERROR" message="['In Join operation (' + self.name + ' ), the right column must belong to the right table'/]" targetClass="excelltsmetamodel::Join">
+          <audits auditExpression="[self.tableRight.columns->count(self.columnRight) = 1 /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Join -> Left column type must be the same as right column type" level="ERROR" message="['In Join operation (' + self.name + ' ), left column type must be the same as right column type'/]" targetClass="excelltsmetamodel::Join">
+          <audits auditExpression="[self.columnLeft.dataType.toString() = self.columnRight.dataType.toString()/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Join -> Select columns must belong to left or right tables" level="ERROR" message="['In Join operation (' + self.name + ' ), select columns must belong to left or right tables'/]" targetClass="excelltsmetamodel::Join">
+          <audits auditExpression="[self.selectColumns->select(c | self.tableLeft.columns->count(c) = 1 or self.tableRight.columns->count(c) = 1)->size() = self.selectColumns->size()/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Join -> All three tables must be different " level="ERROR" message="['In Join operation (' + self.name + ' ), all three tables must be different'/]" targetClass="excelltsmetamodel::Join">
+          <audits auditExpression="[self.tableLeft &lt;> self.tableRight and self.tableRight &lt;> self.resultTable /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Group -> The table must be different from the result table" level="ERROR" message="['In Group operation (' + self.name + ' ), the table must be different from the result table'/]" targetClass="excelltsmetamodel::Group">
+          <audits auditExpression="[self.table &lt;> self.resultTable /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Group -> All columns of groupBy must belong to the table" level="ERROR" message="['In Group operation (' + self.name + ' ), all columns of groupBy must belong to the table'/]" targetClass="excelltsmetamodel::Group">
+          <audits auditExpression="[self.groupBy->select(c | self.table.columns->exists(col | col.name = c.name and col.dataType = c.dataType))->size() = self.groupBy->size() /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Group -> The operand column must belong to the table" level="ERROR" message="['In Group operation (' + self.name + ' ), the operand column must belong to the table'/]" targetClass="excelltsmetamodel::Group">
+          <audits auditExpression="[self.table.columns->count(self.operandColumn) = 1 /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Lookup -> The base column and operand column must belong to table and be different" level="ERROR" message="['In Lookup operation (' + self.name + ' ), the base column and operand column must belong to table and be different each other'/]" targetClass="excelltsmetamodel::Lookup">
+          <audits auditExpression="[self.column &lt;> self.operandColumn and self.table.columns->count(self.column) =1 and self.table.columns->count(self.operandColumn) = 1/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Lookup -> The match column and lookup column must belong to lookup table and must be different" level="ERROR" message="['In Lookup operation (' + self.name + ' ), the base column and operand column must belong to table and be different each other'/]" targetClass="excelltsmetamodel::Lookup">
+          <audits auditExpression="[self.matchColumn &lt;> self.lookupColumn  and self.lookupTable.columns->count(self.matchColumn) = 1 and self.lookupTable.columns->count(self.lookupColumn) = 1/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Lookup -> The lookup column, result column and operand column must have the same type" level="ERROR" message="['In Lookup operation (' + self.name + ' ), the lookup column, result column and operand column must have the same type'/]" targetClass="excelltsmetamodel::Lookup">
+          <audits auditExpression="[self.operandColumn.dataType = self.lookupColumn.dataType and self.lookupColumn.dataType = self.resultColumn.dataType/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Lookup -> The match column and base column must have the same type" level="ERROR" message="['In Lookup operation (' + self.name + ' ), the match column and base column must have the same type'/]" targetClass="excelltsmetamodel::Lookup">
+          <audits auditExpression="[self.matchColumn.dataType = self.column.dataType/]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Lookup -> If it's a same table operation : the base column and match column must be the same" level="ERROR" message="['In Lookup operation (' + self.name + ' ), if it is a same table operation : the base column and match column must be the same'/]" targetClass="excelltsmetamodel::Lookup">
+          <audits auditExpression="[ (self.table = self.lookupTable and self.column = self.matchColumn) or (self.table &lt;> self.lookupColumn) /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Lookup -> If it's a same table operation : the operand column must be different from lookup column" level="ERROR" message="['In Lookup operation (' + self.name + ' ), if it is a same table operation :  the operand column must be different from lookup column'/]" targetClass="excelltsmetamodel::Lookup">
+          <audits auditExpression="[ (self.table = self.lookupTable and self.operandColumn &lt;> self.lookupColumn) or (self.table &lt;> self.lookupColumn) /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="Lookup -> If it's a same table operation : the result column it must be different from match column, operand column and lookup column" level="ERROR" message="['In Lookup operation (' + self.name + ' ), if it is a same table operation :  the operand column must be different from lookup column'/]" targetClass="excelltsmetamodel::Lookup">
+          <audits auditExpression="[ (self.table &lt;> self.lookupTable and self.resultTable &lt;> self.lookupTable) or (self.table = self.lookupTable) /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="String Manipulation Concat -> The sourceA and souceB must be in the table " level="ERROR" message="['In String concat operation (' + self.name + ' ),  the sourceA and souceB must be in the table'/]" targetClass="excelltsmetamodel::Concat">
+          <audits auditExpression="[self.table.columns->count(self.sourceA) = 1 and self.table.columns->count(self.sourceB) = 1 /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="String Manipulation Concat -> The result column must be in the result table" level="ERROR" message="['In String concat operation (' + self.name + ' ), the result column must be in the result table'/]" targetClass="excelltsmetamodel::Concat">
+          <audits auditExpression="[self.resultTable.columns->count(resultColumn) = 1 /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="String Manipulation Concat -> The result column, sourceA and sourceB must be of Text type" level="ERROR" message="['In String concat operation (' + self.name + ' ), the result column, sourceA and sourceB must be of Text type'/]" targetClass="excelltsmetamodel::Concat">
+          <audits auditExpression="[self.sourceA.dataType.toString() = 'TEXT' and self.resultColumn.dataType.toString() = 'TEXT'  and self.sourceB.dataType.toString() = 'TEXT'  /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="String Manipulation Extract -> The column must belong to table and must be of type TEXT" level="ERROR" message="['In String Extract operation (' + self.name + ' ), the column must belong to table and must be of type TEXT'/]" targetClass="excelltsmetamodel::Extract">
+          <audits auditExpression="[self.table.columns->count(self.column) = 1 and self.column.dataType.toString() = 'TEXT' /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="String Manipulation Extract -> This operation must be a Pattern Match or a Char Search, not suport both" level="ERROR" message="['In String Extract operation (' + self.name + ' ), this operation must be a Pattern Match or a Index Search, not suport both. To ignore index put -1, to ignore pattern put it empty. The index must be >= 0'/]" targetClass="excelltsmetamodel::Extract">
+          <audits auditExpression="[ if (self.pattern.size() > 0) then self.lbChar = -1 and self.ubChar = -1  else self.lbChar >= 0 and self.ubChar >= 0  endif /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="String Manipulation Extract -> The index must be correct " level="ERROR" message="['In String Extract operation (' + self.name + ' ), the upper index it must be higher or equals to lower index'/]" targetClass="excelltsmetamodel::Extract">
+          <audits auditExpression="[ (self.pattern.size() > 0 ) or (self.pattern.size() = 0 and self.lbChar&lt;=self.ubChar )   /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="String Manipulation Split -> The source type is Text and belong to base table" level="ERROR" message="['In String Split operation (' + self.name + ' ), the source type is Text and belong to base table'/]" targetClass="excelltsmetamodel::Split">
+          <audits auditExpression="[ self.source.dataType.toString() = 'TEXT' and self.table.columns->count(self.source) = 1   /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="String Manipulation Split -> the result column A must be different fromt result column B " level="ERROR" message="['In String Split operation (' + self.name + ' ), the result column A must be different fromt result column B '/]" targetClass="excelltsmetamodel::Split">
+          <audits auditExpression="[ self.resultColumnA &lt;> self.resultColumnB   /]"/>
+        </ownedRules>
+        <ownedRules xsi:type="validation:SemanticValidationRule" name="String Manipulation Split -> The result column A and B must be string and belong to result table" level="ERROR" message="['In String Split operation (' + self.name + ' ), the result column A must be different fromt result column B '/]" targetClass="excelltsmetamodel::Split">
+          <audits auditExpression="[ self.resultColumnA.dataType.toString() = 'TEXT' and self.resultColumnB.dataType.toString() = 'TEXT' and self.resultTable.columns->count(self.resultColumnA) = 1 and self.resultTable.columns->count(self.resultColumnB) = 1 /]"/>
+        </ownedRules>
+      </validationSet>
+      <defaultLayer name="Default">
+        <edgeMappings name="R_Import_Table" sourceMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Import']" targetMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Table']" targetFinderExpression="aql:self.tablesToImport.table">
+          <style sourceArrow="CirclePlus" targetArrow="NoDecoration" sizeComputationExpression="2">
+            <strokeColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            <centerLabelStyleDescription labelSize="12" labelExpression="aql:'To be imported'">
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            </centerLabelStyleDescription>
+          </style>
+        </edgeMappings>
+        <edgeMappings name="R_Step_To_Step" sourceMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Import'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Sort'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Remove_Duplicates'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Append_Rows'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Join'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_GroupBy'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Lookup'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Filter'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Concat'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Split'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Extract'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Generic']" targetMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Sort'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Import'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Remove_Duplicates'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Append_Rows'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Join'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_GroupBy'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Lookup'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Save'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Filter'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Concat'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Extract'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Split'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Generic']" targetFinderExpression="aql:self.next">
+          <style targetArrow="InputFillClosedArrow" sizeComputationExpression="2">
+            <strokeColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            <centerLabelStyleDescription labelSize="12" showIcon="false" labelExpression="Next">
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            </centerLabelStyleDescription>
+          </style>
+        </edgeMappings>
+        <edgeMappings name="R_Group_To_Result" sourceMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_GroupBy']" targetMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Table']" targetFinderExpression="aql:self.resultTable">
+          <style sizeComputationExpression="2">
+            <strokeColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            <centerLabelStyleDescription labelSize="12" showIcon="false" labelExpression="aql:'Populates'">
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            </centerLabelStyleDescription>
+          </style>
+        </edgeMappings>
+        <edgeMappings name="R_Join_To_Result" sourceMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Join']" targetMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Table']" targetFinderExpression="aql:self.resultTable">
+          <style sizeComputationExpression="2">
+            <strokeColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            <centerLabelStyleDescription labelSize="12" showIcon="false" labelExpression="aql:'Populates'">
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            </centerLabelStyleDescription>
+          </style>
+        </edgeMappings>
+        <edgeMappings name="R_Lookup_Table" sourceMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Lookup']" targetMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Table']" targetFinderExpression="aql:self.resultTable">
+          <style sizeComputationExpression="2">
+            <strokeColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            <centerLabelStyleDescription labelSize="12" showIcon="false" labelExpression="aql:'Do operation on'">
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            </centerLabelStyleDescription>
+          </style>
+        </edgeMappings>
+        <edgeMappings name="R_Save_Table" sourceMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Save']" targetMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Table']" targetFinderExpression="aql:self.tablesToSave.table">
+          <style targetArrow="CirclePlus" sizeComputationExpression="2">
+            <strokeColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            <centerLabelStyleDescription labelSize="12" showIcon="false" labelExpression="Saved">
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            </centerLabelStyleDescription>
+          </style>
+        </edgeMappings>
+        <edgeMappings name="R_AppendRow_To_Destin" sourceMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Append_Rows']" targetMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Table']" targetFinderExpression="aql:self.destinTable">
+          <style sizeComputationExpression="2">
+            <strokeColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            <centerLabelStyleDescription labelSize="12" showIcon="false" labelExpression="aql:'Populates'">
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            </centerLabelStyleDescription>
+          </style>
+        </edgeMappings>
+        <edgeMappings name="R_SplitConcat_To_Destin" sourceMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Concat'] //@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Split']" targetMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Table']" targetFinderExpression="aql:self.resultTable">
+          <style sizeComputationExpression="2">
+            <strokeColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            <centerLabelStyleDescription labelSize="12" showIcon="false" labelExpression="aql:'Writes to'">
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            </centerLabelStyleDescription>
+          </style>
+        </edgeMappings>
+        <edgeMappings name="R_Concat_To_Destin" sourceMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Extract']" targetMapping="//@ownedViewpoints[name='LTS%20Viewpoint']/@ownedRepresentations[name='LTS_Model_Diagram']/@defaultLayer/@containerMappings[name='C_Table']" targetFinderExpression="aql:self.table">
+          <style sizeComputationExpression="2">
+            <strokeColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            <centerLabelStyleDescription labelSize="12" showIcon="false" labelExpression="aql:'Extracts from'">
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            </centerLabelStyleDescription>
+          </style>
+        </edgeMappings>
+        <containerMappings name="C_Table" semanticCandidatesExpression="aql:self.tables" domainClass="excelltsmetamodel::Table" childrenPresentation="List">
+          <subNodeMappings name="SN_Column_Description" semanticCandidatesExpression="aql:self.columns" domainClass="excelltsmetamodel::Column">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: self.name + '  :  ' + self.dataType.toString()" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql:'Table: ' + self.name" roundedCorner="true" backgroundStyle="Liquid">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_green']"/>
+          </style>
+        </containerMappings>
+        <containerMappings name="C_Association" semanticCandidatesExpression="apl:self.steps" domainClass="excelltsmetamodel::AppendRows" childrenPresentation="List">
+          <subNodeMappings name="SN_Columns_Description" semanticCandidatesExpression="aql:self.associations" domainClass="excelltsmetamodel::Association">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:self.originCol.name + '  :  ' + self.destinCol.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="Association" roundedCorner="true" backgroundStyle="Liquid">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_gray']"/>
+          </style>
+        </containerMappings>
+        <containerMappings name="C_Import" semanticCandidatesExpression="aql:self.steps" domainClass="excelltsmetamodel::Import">
+          <subContainerMappings name="C_Table_To_Import_Info" semanticCandidatesExpression="aql:self.tablesToImport" domainClass="excelltsmetamodel::TableToImport" childrenPresentation="List">
+            <subNodeMappings name="SN_Table_Path" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::TableToImport">
+              <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql: 'Path: '  + self.path" labelPosition="node" resizeKind="NSEW">
+                <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+                <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+                <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+              </style>
+            </subNodeMappings>
+            <subNodeMappings name="SN_Table_Delimiter" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::TableToImport">
+              <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql: 'Delimeter -> \''  + self.delimiter + '\''" labelPosition="node" resizeKind="NSEW">
+                <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+                <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+                <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+              </style>
+            </subNodeMappings>
+            <subNodeMappings name="SN_Delete_Mismatched" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::TableToImport">
+              <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql: 'Is to delete mismatched -> '  + self.deleteMismatchedTypes" labelPosition="node" resizeKind="NSEW">
+                <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+                <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+                <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+              </style>
+            </subNodeMappings>
+            <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql:self.table.name" roundedCorner="true">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+              <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='blue']"/>
+            </style>
+          </subContainerMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql: 'Import: ' + self.name" roundedCorner="true">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_blue']"/>
+          </style>
+        </containerMappings>
+        <containerMappings name="C_Sort" semanticCandidatesExpression="aql:self.steps" domainClass="excelltsmetamodel::Sort" childrenPresentation="List">
+          <subNodeMappings name="SN_Description" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Sort">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:if (self.description.equalsIgnoreCase(''))'No description given' else 'Description: ' + self.description endif" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Table" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Sort">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:'From table: ' + self.table.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Column" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Sort">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:'On column: ' + self.column.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Order" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Sort">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Order: ' + self.order. toString()" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql: 'Sort: ' + self.name" roundedCorner="true">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_blue']"/>
+          </style>
+        </containerMappings>
+        <containerMappings name="C_Filter" semanticCandidatesExpression="aql:self.steps" domainClass="excelltsmetamodel::Filter" childrenPresentation="List">
+          <subNodeMappings name="SN_Description" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Filter">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:if (self.description.equalsIgnoreCase(''))'No description given' else 'Description: ' + self.description endif" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Table" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Filter">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:'From table: ' + self.table.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Operation" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Filter">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Expression -> ' + self.column.name + '  ' +self.operator.toString() + '  '  + self.operand" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql: 'Filter: ' + self.name" roundedCorner="true">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_blue']"/>
+          </style>
+        </containerMappings>
+        <containerMappings name="C_Remove_Duplicates" semanticCandidatesExpression="aql:self.steps" domainClass="excelltsmetamodel::RemoveDuplicates" childrenPresentation="List">
+          <subNodeMappings name="SN_Description" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::RemoveDuplicates">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:if (self.description.equalsIgnoreCase(''))'No description given' else 'Description: ' + self.description endif" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Table" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::RemoveDuplicates">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:'Table: ' + self.table.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Column" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::RemoveDuplicates">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Target column: ' + self.column.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql: 'Remove duplicates: ' + self.name" roundedCorner="true">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_blue']"/>
+          </style>
+        </containerMappings>
+        <containerMappings name="C_Join" semanticCandidatesExpression="aql:self.steps" domainClass="excelltsmetamodel::Join" childrenPresentation="List">
+          <subNodeMappings name="SN_Description" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Join">
+            <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql:if (self.description.equalsIgnoreCase(''))'No description given' else 'Description: ' + self.description endif" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Table_L" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Join">
+            <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql:'Table Left: ' + self.tableLeft.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Table_R" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Join">
+            <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql:'Table Right: ' + self.tableRight.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Type" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Join">
+            <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql: 'Join Type: ' + self.type " labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_ON" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Join">
+            <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql: 'Match condition: ' +  self.tableRight.name + '.' + self.columnRight.name +  '  ON  ' + self.tableLeft.name + '.' + self.columnRight.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Result_Table" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Join">
+            <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql: 'Result table: ' + self.resultTable.name " labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql: 'Join: ' + self.name" roundedCorner="true">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_blue']"/>
+          </style>
+        </containerMappings>
+        <containerMappings name="C_GroupBy" semanticCandidatesExpression="aql:self.steps" domainClass="excelltsmetamodel::Group" childrenPresentation="List">
+          <subNodeMappings name="SN_Description" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Group">
+            <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql:if (self.description.equalsIgnoreCase(''))'No description given' else 'Description: ' + self.description endif" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_From_Table" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Group">
+            <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql: 'From table: ' + self.table.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Result_Table" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Group">
+            <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql: 'Result table: ' + self.resultTable.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Operand_Column" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Group">
+            <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql: 'Operand column: ' + self.operandColumn.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Operation" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Group">
+            <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql: 'Operation: ' + self.operation" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Result_Column" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Group">
+            <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql: 'Result column: ' + self.resultTable.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_GroupBy" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Group">
+            <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql: 'Group by: ' + self.groupBy.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql: 'Group by: ' + self.name" roundedCorner="true">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_blue']"/>
+          </style>
+        </containerMappings>
+        <containerMappings name="C_Append_Rows" semanticCandidatesExpression="aql:self.steps" domainClass="excelltsmetamodel::AppendRows" childrenPresentation="List">
+          <subNodeMappings name="SN_Description" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::AppendRows">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:if (self.description.equalsIgnoreCase(''))'No description given' else 'Description: ' + self.description endif" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Origin_Table" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::AppendRows">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Origin table: ' + self.originTable.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Destin_Table" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::AppendRows">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Destin table: ' + self.destinTable.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql: 'Schema alter: ' + self.name" roundedCorner="true">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_blue']"/>
+          </style>
+        </containerMappings>
+        <containerMappings name="C_Lookup" semanticCandidatesExpression="aql:self.steps" domainClass="excelltsmetamodel::Lookup" childrenPresentation="List">
+          <subNodeMappings name="SN_Description" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Lookup">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:if (self.description.equalsIgnoreCase(''))'No description given' else 'Description: ' + self.description endif" labelAlignment="LEFT" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Origin_Table" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Lookup">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Origin table: ' + self.table.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Lookup_Table" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Lookup">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Lookup table: ' + self.lookupTable.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Result_Table" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Lookup">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Result table: ' + self.resultTable.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Base_Column" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Lookup">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Base column (origin table): ' + self.column.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Match_Column" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Lookup">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Match column (lookup table): ' + self.column.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Operand_Column" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Lookup">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Operand column (origin table): ' + self.operandColumn.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Operation" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Lookup">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Operation: ' + self.operation.toString()" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Lookup_Column" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Lookup">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Operator (lookup table): ' + self.lookupColumn.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql: 'Lookup: ' + self.name" roundedCorner="true">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_blue']"/>
+          </style>
+        </containerMappings>
+        <containerMappings name="C_Save" semanticCandidatesExpression="aql:self.steps" domainClass="excelltsmetamodel::Save">
+          <subNodeMappings name="SN_Description" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Concat">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:if (self.description.equalsIgnoreCase(''))'No description given' else 'Description: ' + self.description endif" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subContainerMappings name="C_Table_To_Save_Info" semanticCandidatesExpression="aql:self.tablesToSave" domainClass="excelltsmetamodel::TableToSave" childrenPresentation="List">
+            <subNodeMappings name="SN_Table_Delimiter" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::TableToSave">
+              <style xsi:type="style:SquareDescription" labelSize="12" showIcon="false" labelExpression="aql: 'Path: ' + self.path" labelPosition="node" resizeKind="NSEW">
+                <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+                <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+                <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+              </style>
+            </subNodeMappings>
+            <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql:self.table.name" roundedCorner="true">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+              <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='blue']"/>
+            </style>
+          </subContainerMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql: 'Save: ' + self.name" roundedCorner="true">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_blue']"/>
+          </style>
+        </containerMappings>
+        <containerMappings name="C_Concat" semanticCandidatesExpression="aql:self.steps" domainClass="excelltsmetamodel::Concat" childrenPresentation="List">
+          <subNodeMappings name="SN_Description" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Concat">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:if (self.description.equalsIgnoreCase(''))'No description given' else 'Description: ' + self.description endif" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_BaseTable" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Concat">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Base table: ' + self.table.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_SourceA" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Concat">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Source A: ' + self.sourceA.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_SourceB" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Concat">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Source B: ' + self.sourceB.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_ResultColumn" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Concat">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Result column: ' + self.resultColumn.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_ResultTable" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Concat">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Result table: ' + self.resultTable.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql: 'Concat Strings: ' + self.name" roundedCorner="true">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_blue']"/>
+          </style>
+        </containerMappings>
+        <containerMappings name="C_Split" semanticCandidatesExpression="aql:self.steps" domainClass="excelltsmetamodel::Split" childrenPresentation="List">
+          <subNodeMappings name="SN_Description" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Split">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:if (self.description.equalsIgnoreCase(''))'No description given' else 'Description: ' + self.description endif" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Table" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Split">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Base table: ' + self.table.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Source" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Split">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Source column: ' + self.source.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_NumChars" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Split">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Num chars: ' + if self.numOfChars = -1 then 'Ignoring' else self.numOfChars endif" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Delimiter" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Split">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:'Delimiter -> ' + (if self.numOfChars = -1 then '\'' + self.delimiter + '\'' else 'Ignoring' endif)" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_ResultColumn_A" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Split">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Result column A: ' + self.resultColumnA.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_ResultColumn_B" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Split">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Result column B: ' + self.resultColumnB.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_ResultTable" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Split">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Result table: ' + self.resultTable.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql: 'Split Strings: ' + self.name" roundedCorner="true">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_blue']"/>
+          </style>
+        </containerMappings>
+        <containerMappings name="C_Extract" semanticCandidatesExpression="aql:self.steps" domainClass="excelltsmetamodel::Extract" childrenPresentation="List">
+          <subNodeMappings name="SN_Description" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Extract">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:if (self.description.equalsIgnoreCase(''))'No description given' else 'Description: ' + self.description endif" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Table" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Extract">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Base table: ' + self.table.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Column" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Extract">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Column: ' + self.column.name" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_Pattern" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Extract">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Pattern: ' + if(self.pattern.size() = 0) then 'Ignoring' else self.pattern endif" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_LowerBound" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Extract">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Lower bound: ' + if(self.lbChar = -1) then 'Ignoring' else self.lbChar endif" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="SN_UppperBound" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::Extract">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: 'Upper bound: ' + if(self.ubChar = -1) then 'Ignoring' else self.ubChar endif" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql: 'Extract Strings: ' + self.name" roundedCorner="true">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_blue']"/>
+          </style>
+        </containerMappings>
+        <containerMappings name="C_Generic" semanticCandidatesExpression="aql:self.steps" domainClass="excelltsmetamodel::GenericStep" childrenPresentation="List">
+          <subNodeMappings name="SN_Description" semanticCandidatesExpression="aql:self" domainClass="excelltsmetamodel::GenericStep">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:if (self.description.equalsIgnoreCase(''))'No description given' else 'Description: ' + self.description endif" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql: 'Generic Step: ' + self.name" roundedCorner="true">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_gray']"/>
+          </style>
+        </containerMappings>
+        <toolSections name="Generation Section">
+          <ownedTools xsi:type="tool:PopupMenu" name="Menu Model Operation">
+            <menuItemDescription xsi:type="tool:OperationAction" name="Generate Graphical Projection">
+              <view name="views"/>
+              <initialOperation>
+                <firstModelOperations xsi:type="tool:ChangeContext" browseExpression="aql:self">
+                  <subModelOperations xsi:type="tool:Let" valueExpression="service:generateGraphicalProjection()"/>
+                </firstModelOperations>
+              </initialOperation>
+            </menuItemDescription>
+            <menuItemDescription xsi:type="tool:OperationAction" name="Generate Textual Projection">
+              <view name="views"/>
+              <initialOperation>
+                <firstModelOperations xsi:type="tool:ChangeContext" browseExpression="aql:self">
+                  <subModelOperations xsi:type="tool:Let" valueExpression="service:textualProjection()"/>
+                </firstModelOperations>
+              </initialOperation>
+            </menuItemDescription>
+          </ownedTools>
+        </toolSections>
+      </defaultLayer>
+    </ownedRepresentations>
+    <ownedJavaExtensions qualifiedClassName="excelltsmetamodel.design.Services"/>
+  </ownedViewpoints>
+</description:Group>

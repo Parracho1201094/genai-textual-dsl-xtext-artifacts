@@ -1,0 +1,54 @@
+process Grading {
+  load students from csv "data/grading/students.csv" header true delimiter ","
+  columns {
+    id: int
+    name: string
+    email: string
+  }
+
+  load courses from csv "data/grading/courses.csv" header true delimiter ","
+  columns {
+    id: int
+    code: string
+    name: string
+  }
+
+  load exams from csv "data/grading/exams.csv" header true delimiter ","
+  columns {
+    studentId: int
+    courseId: int
+    examName: string
+    grade: decimal
+    weight: decimal
+  }
+
+  remove duplicates from students by id
+  remove duplicates from courses by id
+
+  filter exams where grade >= 0 and grade <= 20
+  set exams.weightedGrade : decimal = grade * weight
+
+  aggregate exams into finalGrades by studentId, courseId add {
+    sum(weightedGrade) as weightedTotal: decimal
+    sum(weight) as totalWeight: decimal
+  }
+
+  set finalGrades.finalGrade : decimal = weightedTotal / totalWeight
+
+  join finalGrades with students on studentId = id add {
+    name as studentName
+    email as studentEmail
+  }
+
+  join finalGrades with courses on courseId = id add {
+    code as courseCode
+    name as courseName
+  }
+
+  set finalGrades.resultLabel : string = concat(courseCode, " - ", studentName)
+  drop columns weightedTotal, totalWeight from finalGrades
+  sort finalGrades by studentName asc, courseCode asc
+
+  save finalGrades to csv "out/grading/final_grades.csv" header true
+  save log to "out/grading/grading.log"
+}

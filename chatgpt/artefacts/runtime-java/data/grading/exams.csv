@@ -1,0 +1,8 @@
+studentId,courseId,examName,grade,weight
+1,10,Project,17,0.60
+1,10,Exam,14,0.40
+2,10,Project,12,0.60
+2,10,Exam,8,0.40
+3,20,Project,16,0.50
+3,20,Exam,18,0.50
+3,20,Invalid,25,0.20

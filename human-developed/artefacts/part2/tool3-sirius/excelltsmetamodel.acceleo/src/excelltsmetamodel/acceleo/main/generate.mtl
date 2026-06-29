@@ -1,0 +1,61 @@
+[comment encoding = UTF-8 /]
+[module generate('http://www.example.org/excelltsmetamodel')]
+
+[import excelltsmetamodel::acceleo::main::files::utils /] 
+[import excelltsmetamodel::acceleo::main::files::tables /] 
+[import excelltsmetamodel::acceleo::main::files::filters::steps /]
+[import excelltsmetamodel::acceleo::main::files::flow /]
+[import excelltsmetamodel::acceleo::main::files::logger /]
+
+
+[template public generateElement(aModel : Model)]
+[comment @main/]
+
+[aModel.generateStaticEnumAndUtils(aModel)/]
+[aModel.generateTableRelated(aModel)/]
+[aModel.generateSteps(aModel)/]
+[aModel.generateFlow(aModel)/]
+[if (aModel.logs)]
+[aModel.generateLogger(aModel)/]
+[/if]
+
+[file ('org/enorm/files/input/README', false, 'UTF-8')]
+To create the folder
+[/file]
+
+[file ('org/enorm/files/output/README', false, 'UTF-8')]
+To create the folder
+[/file]
+
+[file ('org/enorm/Main.java', false, 'UTF-8')]
+package org.enorm;
+
+import org.enorm.domain.Flow;
+import org.enorm.domain.steps.appendRowsStep.*;
+import org.enorm.domain.steps.filterStep.*;
+import org.enorm.domain.steps.groupByStep.*;
+import org.enorm.domain.steps.importStep.*;
+import org.enorm.domain.steps.joinStep.*;
+import org.enorm.domain.steps.lookupStep.*;
+import org.enorm.domain.steps.removeDuplicatesStep.*;
+import org.enorm.domain.steps.saveStep.*;
+import org.enorm.domain.steps.sortStep.*;
+
+public class Main {
+    public static void main(String['[]'/] args) {
+        FactoryAppendRowsStep.setStep(new AppendRowsStepDefault());
+        FactoryFilterStep.setStep(new FilterStepDefault());
+        FactoryGroupByStep.setStep(new GroupByStepDefault());
+        FactoryImportStep.setStep(new ImportStepDefault());
+        FactoryJoinStep.setStep(new JoinStepDefault());
+        FactoryLookupStep.setStep(new LookupStepDefault());
+        FactoryRemoveDuplicatesStep.setStep(new RemoveDuplicatesStepDefault());
+        FactorySaveStep.setStep(new SaveStepDefault());
+        FactorySortStep.setStep(new SortStepDefault());
+
+        Flow.execute();
+    }
+}
+
+[/file]
+[/template]

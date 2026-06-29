@@ -1,0 +1,29 @@
+/*
+ * Invalid Example 1: Type Mismatch
+ * Error: Trying to compare a String column with a Decimal
+ */
+process InvalidTypeExample {
+	csv source employees from "employees.csv" {
+		id: Integer,
+		name: String,
+		salary: Decimal
+	}
+	
+	table employees_copy {
+		id: Integer,
+		name: String,
+		salary: Decimal
+	}
+	
+	operations {
+		load employees_copy from employees copy all columns;
+		
+		// ERROR: Comparing String (name) with Decimal literal
+		filter employees_copy where name > 1000.0;
+	}
+	
+	output {
+		save employees_copy to "output.csv";
+		save log to "log.txt";
+	}
+}

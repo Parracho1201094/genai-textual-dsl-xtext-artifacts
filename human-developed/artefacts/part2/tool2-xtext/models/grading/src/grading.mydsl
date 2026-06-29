@@ -1,0 +1,90 @@
+Grading
+    logs: true
+    tables:
+        Students:
+            id_student as NUMBER
+            first_name as TEXT
+            last_name as TEXT
+            
+        Courses:
+            id_course as NUMBER
+            name_course as TEXT
+            id_student as NUMBER
+            
+        Grades:
+            id_grade as NUMBER
+            id_course as NUMBER
+            id_student as NUMBER
+            grade as NUMBER
+            
+        GradesAverage:
+            id_student as NUMBER
+            id_course as NUMBER
+            grade as NUMBER
+            
+        GradesAverageJoinCourses:
+            id_student as NUMBER
+            id_course as NUMBER
+            grade as NUMBER
+            name_course as TEXT
+            
+        Final:
+            id_student as NUMBER
+            id_course as NUMBER
+            grade as NUMBER
+            name_course as TEXT
+            
+        JoinFinalTableWithStudent:
+        	id_student as NUMBER
+            id_course as NUMBER
+            grade as NUMBER
+            name_course as TEXT
+            first_name as TEXT
+            
+    steps:
+        IMPORT "Import" -> "RemoveDuplicatedGradeIds":
+            IMPORT FROM "./students.csv" TO Students WITH DELIMITER "," AND DELETE_MISMATCHED_TYPES AS false
+            IMPORT FROM "./courses.csv" TO Courses WITH DELIMITER "," AND DELETE_MISMATCHED_TYPES AS false
+            IMPORT FROM "./grades.csv" TO Grades WITH DELIMITER "," AND DELETE_MISMATCHED_TYPES AS false
+            
+        REMOVE_DUPLICATES "RemoveDuplicatedGradeIds" -> "GroupStudentsToGetAVGNotes":
+            ON Grades("Grades.id_grade")
+            
+        GROUP_BY "GroupStudentsToGetAVGNotes" -> "JoinWithCoursesToGetName":
+            ON Grades("Grades.id_student", "Grades.id_course")
+            AND AVERAGE "Grades.grade"
+            INTO GradesAverage("GradesAverage.grade")
+            
+        JOIN INNER "JoinWithCoursesToGetName" -> "CreateFinalTable":
+            ON GradesAverage("GradesAverage.id_course") WITH Courses("Courses.id_course")
+            SELECTING 
+                "GradesAverage.id_student", 
+                "GradesAverage.id_course", 
+                "GradesAverage.grade", 
+                "Courses.name_course"
+            INTO GradesAverageJoinCourses
+            
+        APPEND_ROWS "CreateFinalTable" -> "JoinFinalTableWithStudent":
+            FROM GradesAverageJoinCourses TO Final
+            MAPPING:
+                "GradesAverageJoinCourses.id_student" TO "Final.id_student"
+                "GradesAverageJoinCourses.id_course" TO "Final.id_course"
+                "GradesAverageJoinCourses.grade" TO "Final.grade"
+                "GradesAverageJoinCourses.name_course" TO "Final.name_course"
+            
+        JOIN INNER "JoinFinalTableWithStudent" -> "SaveFinalTable":
+            ON Final("Final.id_student") WITH Students("Students.id_student")
+            SELECTING 
+                "Final.id_student", 
+                "Students.first_name",
+                "Final.id_course", 
+                "Final.grade", 
+                "Final.name_course"
+            INTO JoinFinalTableWithStudent
+            
+        SAVE "SaveFinalTable":
+            JoinFinalTableWithStudent("id_student", "id_course", "grade", "name_course", "name_student") TO "output-grading"
+
+            
+            
+            

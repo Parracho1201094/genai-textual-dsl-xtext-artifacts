@@ -1,0 +1,11 @@
+id_employee,name_employee,id_category,name_category,value_worked_hours
+10,Julia Robinson,1,Manager,55
+9,Ian Lewis,3,Designer,42.5
+8,Hannah Martin,2,Developer,45
+7,George Harris,1,Manager,55
+6,Fiona Clark,3,Designer,42.5
+5,Emma Davis,2,Developer,45
+4,David Wilson,1,Manager,55
+3,Charlie Brown,3,Designer,42.5
+2,Bob Smith,2,Developer,45
+1,Alice Johnson,1,Manager,55

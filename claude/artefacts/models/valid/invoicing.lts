@@ -1,0 +1,108 @@
+/*
+ * LTS Model – Case 2: Invoicing
+ *
+ * Inputs  : clients.csv, products.csv, sales.csv
+ * Output  : invoices.csv
+ * Log     : invoicing_log.txt
+ *
+ * Logic:
+ *   1. Load clients, products, sales.
+ *   2. Filter out sales with quantity <= 0.
+ *   3. Join sales with products to bring in unit price.
+ *   4. Calculate line total = quantity * unitPrice.
+ *   5. Group by clientId, summing lineTotal → totalInvoice.
+ *   6. Lookup clientName from clients into the invoice summary.
+ *   7. Save to CSV. Save log.
+ */
+
+process InvoicingProcess
+    description: "Produce the total invoice value for each client"
+{
+    // ── DATA SOURCES ────────────────────────────────────────────────────────
+    datasource clientsSource type CSV {
+        path:      "data/clients.csv"
+        delimiter: ","
+        hasHeader: true
+    }
+
+    datasource productsSource type CSV {
+        path:      "data/products.csv"
+        delimiter: ","
+        hasHeader: true
+    }
+
+    datasource salesSource type CSV {
+        path:      "data/sales.csv"
+        delimiter: ","
+        hasHeader: true
+    }
+
+    datasource invoiceOutput type CSV {
+        path:      "output/invoices.csv"
+        delimiter: ","
+        hasHeader: true
+    }
+
+    // ── TABLE DECLARATIONS ──────────────────────────────────────────────────
+
+    table clients from clientsSource {
+        clientId   : Integer
+        clientName : String
+        email      : String
+    }
+
+    table products from productsSource {
+        productId  : Integer
+        productName: String
+        unitPrice  : Decimal
+    }
+
+    table sales from salesSource {
+        saleId    : Integer
+        clientId  : Integer
+        productId : Integer
+        quantity  : Integer
+    }
+
+    output table invoices to invoiceOutput {
+        clientId      : Integer
+        clientName    : String
+        totalInvoice  : Decimal
+    }
+
+    log invoicingLog to "output/invoicing_log.txt"
+        level: WARNING
+
+    // ── STEPS ───────────────────────────────────────────────────────────────
+
+    load clients
+    load products
+    load sales
+
+    // Remove sales with invalid quantity
+    filter sales where quantity > 0
+
+    // Bring unit price into sales
+    lookup unitPrice from products on productId into sales using productId
+
+    // Calculate line total for each sale
+    add column lineTotal : Decimal = quantity * unitPrice to sales
+
+    // Group sales by client, summing line totals
+    create table invoiceSummary {
+        clientId     : Integer
+        totalInvoice : Decimal
+    }
+
+    group sales by clientId
+        aggregating lineTotal using SUM
+        into invoiceSummary
+
+    // Bring client name into summary
+    lookup clientName from clients on clientId into invoiceSummary using clientId
+
+    // Populate the output table
+    append invoiceSummary to invoices
+    save invoices
+    save invoicingLog
+}

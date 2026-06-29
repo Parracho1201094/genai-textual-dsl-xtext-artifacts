@@ -1,0 +1,129 @@
+@startuml
+digraph model {
+	subgraph tier1 {
+	    node [color="#99ff99",style="filled",group="tier1"]
+	    "Students"
+	    "Courses"
+	    "Grades"
+	}
+	subgraph tier2 {
+	    node [color="lightyellow",style="filled",group="tier2"]
+	    "GradesAverage"
+	    "GradesAverageJoinCourses"
+	    "JoinFinalTableWithStudent"
+	    "Final"
+	}
+	subgraph tier3 {
+	    node [color="lightblue",style="filled",group="tier3"]
+	    "Import"
+	    "RemoveDuplicatedGradeIds"
+	    "GroupStudentsToGetAVGNotes"
+	    "JoinWithCoursesToGetName"
+	    "CreateFinalTable"
+	    "JoinFinalTableWithStudent"
+	    "SaveFinalTable"
+	}
+"Students" [shape=box, label="Table: Students\n
+id_student: NUMBER
+first_name: TEXT
+last_name: TEXT
+"]
+"Courses" [shape=box, label="Table: Courses\n
+id_course: NUMBER
+name_course: TEXT
+id_student: NUMBER
+"]
+"Grades" [shape=box, label="Table: Grades\n
+id_grade: NUMBER
+id_course: NUMBER
+id_student: NUMBER
+grade: NUMBER
+"]
+"GradesAverage" [shape=box, label="Table: GradesAverage\n
+id_student: NUMBER
+id_course: NUMBER
+grade: NUMBER
+"]
+"GradesAverageJoinCourses" [shape=box, label="Table: GradesAverageJoinCourses\n
+id_student: NUMBER
+id_course: NUMBER
+grade: NUMBER
+name_course: TEXT
+"]
+"Final" [shape=box, label="Table: Final\n
+id_student: NUMBER
+id_course: NUMBER
+grade: NUMBER
+name_course: TEXT
+"]
+"JoinFinalTableWithStudent" [shape=box, label="Table: JoinFinalTableWithStudent\n
+id_student: NUMBER
+id_course: NUMBER
+grade: NUMBER
+name_course: TEXT
+first_name: TEXT
+"]
+"Import" [shape=box, label="Type = Import\n
+Name = Import
+Tables = Students (./students.csv) delimited by ',' Delete Mismatched Types = false
+Courses (./courses.csv) delimited by ',' Delete Mismatched Types = false
+Grades (./grades.csv) delimited by ',' Delete Mismatched Types = false
+"]
+"RemoveDuplicatedGradeIds" [shape=box, label="Type = Remove Duplicates\n
+Name = RemoveDuplicatedGradeIds
+From Table = Grades
+"]
+"GroupStudentsToGetAVGNotes" [shape=box, label="Type = Group by\n
+Name = GroupStudentsToGetAVGNotes
+From Table = Grades
+Result Table = GradesAverage
+Result Column = grade
+"]
+"JoinWithCoursesToGetName" [shape=box, label="Type = Join\n
+Name = JoinWithCoursesToGetName
+Table Left = GradesAverage
+Table Right = Courses
+Type = INNER
+Condition = id_course ON id_course
+Select Columns = id_student, id_course, grade, name_course
+"]
+"CreateFinalTable" [shape=box, label="Type = Append Rows\n
+Name = CreateFinalTable
+From Table = GradesAverageJoinCourses
+Result Table = Final
+"]
+"CreateFinalTable' associations" [shape=box, label="CreateFinalTable' associations\n
+GradesAverageJoinCourses.id_student -> Final.id_student
+GradesAverageJoinCourses.id_course -> Final.id_course
+GradesAverageJoinCourses.grade -> Final.grade
+GradesAverageJoinCourses.name_course -> Final.name_course
+"]
+"JoinFinalTableWithStudent" [shape=box, label="Type = Join\n
+Name = JoinFinalTableWithStudent
+Table Left = Final
+Table Right = Students
+Type = INNER
+Condition = id_student ON id_student
+Select Columns = id_student, first_name, id_course, grade, name_course
+"]
+"SaveFinalTable" [shape=box, label="Type = Save\n
+Name = SaveFinalTable
+Tables = JoinFinalTableWithStudent(output-grading)
+"]
+"Import" -> "RemoveDuplicatedGradeIds" [label="Next"]
+"Students" -> "Import" [label="Imported"]
+"Courses" -> "Import" [label="Imported"]
+"Grades" -> "Import" [label="Imported"]
+"RemoveDuplicatedGradeIds" -> "GroupStudentsToGetAVGNotes" [label="Next"]
+"GroupStudentsToGetAVGNotes" -> "JoinWithCoursesToGetName" [label="Next"]
+"GroupStudentsToGetAVGNotes" -> "GradesAverage" [label="Produces"]
+"JoinWithCoursesToGetName" -> "CreateFinalTable" [label="Next"]
+"JoinWithCoursesToGetName" -> "GradesAverageJoinCourses" [label="Produces"]
+"CreateFinalTable" -> "JoinFinalTableWithStudent" [label="Next"]
+"CreateFinalTable" -> "Final" [label="Produces"]
+"CreateFinalTable" -> "CreateFinalTable' associations" [label="Map as"]
+"JoinFinalTableWithStudent" -> "SaveFinalTable" [label="Next"]
+"JoinFinalTableWithStudent" -> "JoinFinalTableWithStudent" [label="Produces"]
+"SaveFinalTable" -> "JoinFinalTableWithStudent" [label="Saves"]
+}
+@enduml

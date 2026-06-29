@@ -1,0 +1,22 @@
+process TypeMismatch {
+    input employees from csv "employees.csv" {
+        employeeId: integer required;
+        name: string required;
+    }
+    table result {
+        amount: decimal;
+    }
+    output resultCsv table result to csv "result.csv";
+    log processLog to "result.log" levels warnings, errors;
+
+    steps {
+        load employees;
+        create empty result;
+        append rows from employees to result map {
+            // ERROR LTS_INCOMPATIBLE_TYPES: string cannot be assigned to decimal.
+            result.amount = employees.name;
+        };
+        save result to resultCsv;
+        save log processLog;
+    }
+}

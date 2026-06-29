@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<excelltsmetamodel:Model xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:excelltsmetamodel="http://www.example.org/excelltsmetamodel" name="Grades">
+  <tables name="Students">
+    <columns name="id_student_ts" dataType="NUMBER"/>
+    <columns name="first_name"/>
+    <columns name="last_name"/>
+  </tables>
+  <tables name="Courses">
+    <columns name="id_course_tc" dataType="NUMBER"/>
+    <columns name="name_course_tc"/>
+    <columns name="id_student_tc" dataType="NUMBER"/>
+  </tables>
+  <tables name="Grades">
+    <columns name="id_grade" dataType="NUMBER"/>
+    <columns name="id_coure_tg"/>
+    <columns name="id_student_tg" dataType="NUMBER"/>
+    <columns name="grade" dataType="NUMBER"/>
+  </tables>
+  <tables name="Result Group By">
+    <columns name="id_student_trg" dataType="NUMBER"/>
+    <columns name="id_course_trg" dataType="NUMBER"/>
+    <columns name="avg_grade" dataType="NUMBER"/>
+  </tables>
+  <tables name="Avg Grades With Course Name">
+    <columns name="id_student_tag" dataType="NUMBER"/>
+    <columns name="id_course_tag"/>
+    <columns name="avg_grade_tag" dataType="NUMBER"/>
+    <columns name="name_course_tag"/>
+  </tables>
+  <tables name="Final Grade Table">
+    <columns name="id_student_tf" dataType="NUMBER"/>
+    <columns name="id_course_tf" dataType="NUMBER"/>
+    <columns name="avg_grade_tf" dataType="NUMBER"/>
+    <columns name="name_course_tf"/>
+    <columns name="name_student_tf"/>
+  </tables>
+  <steps xsi:type="excelltsmetamodel:Import" name="Import all tables" description="Import student, course and grades" next="//@steps.1">
+    <tablesToImport table="//@tables.0" path="/student.csv" delimiter="," deleteMismatchedTypes="true"/>
+    <tablesToImport table="//@tables.1" path="/courses.csv" delimiter="," deleteMismatchedTypes="true"/>
+    <tablesToImport table="//@tables.2" path="/gradescsv" delimiter="," deleteMismatchedTypes="true"/>
+  </steps>
+  <steps xsi:type="excelltsmetamodel:RemoveDuplicates" name="Remove id_grades duplicated" description="Remove all id_grades that could be duplicated" next="//@steps.2" table="//@tables.2" column="//@tables.2/@columns.0"/>
+  <steps xsi:type="excelltsmetamodel:Group" name="Group By id_student and AVG grande" description="It will group by student and calculate the AVG for the grades" next="//@steps.3" table="//@tables.2" groupBy="//@tables.2/@columns.2 //@tables.2/@columns.1" resultTable="//@tables.3" operandColumn="//@tables.2/@columns.3" operation="AVERAGE" resultColumn="//@tables.3/@columns.2"/>
+  <steps xsi:type="excelltsmetamodel:Join" name="Join the Grouped By Table with Courses" description="The goal is to join in order to obtain the course name" next="//@steps.4" tableLeft="//@tables.3" tableRight="//@tables.1" columnLeft="//@tables.3/@columns.1" columnRight="//@tables.1/@columns.0" resultTable="//@tables.4" selectColumns="//@tables.1/@columns.0 //@tables.1/@columns.2 //@tables.1/@columns.1"/>
+  <steps xsi:type="excelltsmetamodel:AppendRows" name="Pass to the final table" description="Pass all the data to the final schema table" next="//@steps.5" originTable="//@tables.4" destinTable="//@tables.5">
+    <associations originCol="//@tables.4/@columns.0" destinCol="//@tables.5/@columns.0"/>
+    <associations originCol="//@tables.4/@columns.0" destinCol="//@tables.5/@columns.1"/>
+    <associations originCol="//@tables.4/@columns.2" destinCol="//@tables.5/@columns.2"/>
+    <associations originCol="//@tables.4/@columns.3" destinCol="//@tables.5/@columns.3"/>
+  </steps>
+  <steps xsi:type="excelltsmetamodel:Concat" name="Concat the student name" description="Takes the first and last name and concat" next="//@steps.6" table="//@tables.0" sourceA="//@tables.0/@columns.1" sourceB="//@tables.0/@columns.2" resultColumn="//@tables.5/@columns.4" resultTable="//@tables.5"/>
+  <steps xsi:type="excelltsmetamodel:Save" name="Save the final table" description="Finalize saving the final step">
+    <tablesToSave table="//@tables.5" path="/output-grades.csv">
+      <columnsNames>id_student</columnsNames>
+      <columnsNames>id_course</columnsNames>
+      <columnsNames>avg_grade</columnsNames>
+      <columnsNames>name_course</columnsNames>
+      <columnsNames>name_student</columnsNames>
+    </tablesToSave>
+  </steps>
+</excelltsmetamodel:Model>

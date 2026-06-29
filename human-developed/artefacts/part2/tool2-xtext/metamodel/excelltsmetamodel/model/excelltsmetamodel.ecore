@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="excelltsmetamodel" nsURI="http://www.example.org/excelltsmetamodel"
+    nsPrefix="excelltsmetamodel">
+  <eClassifiers xsi:type="ecore:EClass" name="Model">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="logs" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="tables" lowerBound="1"
+        upperBound="-1" eType="#//Table" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="steps" lowerBound="1" upperBound="-1"
+        eType="#//Step" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Step" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="description" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="FlowStep" abstract="true" eSuperTypes="#//Step">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="next" lowerBound="1" eType="#//Step"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="FinalStep" abstract="true" eSuperTypes="#//Step"/>
+  <eClassifiers xsi:type="ecore:EEnum" name="JoinType">
+    <eLiterals name="INNER"/>
+    <eLiterals name="OUTER" value="1"/>
+    <eLiterals name="LEFT" value="2"/>
+    <eLiterals name="RIGHT" value="3"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="OrderType">
+    <eLiterals name="ASC"/>
+    <eLiterals name="DESC" value="1"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="ColumnOperationType">
+    <eLiterals name="INSERT"/>
+    <eLiterals name="REMOVE" value="1"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="DataType">
+    <eLiterals name="TEXT"/>
+    <eLiterals name="NUMBER" value="1"/>
+    <eLiterals name="DATE" value="2"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="LookupOperationType">
+    <eLiterals name="NUMERIC_SUM"/>
+    <eLiterals name="NUMERIC_SUBTRACT" value="1"/>
+    <eLiterals name="NUMERIC_MULTIPLY" value="2"/>
+    <eLiterals name="NUMERIC_DIVIDE" value="3"/>
+    <eLiterals name="TEXT_CONCAT" value="4"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="FilterOperatorType">
+    <eLiterals name="EQUALS"/>
+    <eLiterals name="LESS_THAN" value="1"/>
+    <eLiterals name="GREATER_THAN" value="2"/>
+    <eLiterals name="LESS_OR_EQUALS_THAN" value="3"/>
+    <eLiterals name="GREATER_OR_EQUALS_THAN" value="4"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="GroupOperationType">
+    <eLiterals name="MAX"/>
+    <eLiterals name="MIN" value="1"/>
+    <eLiterals name="COUNT" value="2"/>
+    <eLiterals name="SUM" value="3"/>
+    <eLiterals name="AVERAGE" value="4"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Save" eSuperTypes="#//FinalStep">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="tablesToSave" lowerBound="1"
+        upperBound="-1" eType="#//TableToSave" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Table">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="columns" lowerBound="1"
+        upperBound="-1" eType="#//Column" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Group" eSuperTypes="#//FlowStep">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="table" lowerBound="1" eType="#//Table"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="groupBy" lowerBound="1"
+        upperBound="-1" eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="resultTable" lowerBound="1"
+        eType="#//Table"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="operandColumn" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="operation" lowerBound="1"
+        eType="#//GroupOperationType"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="resultColumn" lowerBound="1"
+        eType="#//Column"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Column">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="dataType" lowerBound="1"
+        eType="#//DataType"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Sort" eSuperTypes="#//FlowStep">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="table" lowerBound="1" eType="#//Table"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="column" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="order" lowerBound="1" eType="#//OrderType"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="AppendRows" eSuperTypes="#//FlowStep">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="originTable" lowerBound="1"
+        eType="#//Table"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="destinTable" lowerBound="1"
+        eType="#//Table"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="associations" lowerBound="1"
+        upperBound="-1" eType="#//Association" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="TableToSave">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="table" lowerBound="1" eType="#//Table"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="path" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="columnsNames" lowerBound="1"
+        upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Association">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="originCol" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="destinCol" lowerBound="1"
+        eType="#//Column"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Filter" eSuperTypes="#//FlowStep">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="table" lowerBound="1" eType="#//Table"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="column" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="operand" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="operator" lowerBound="1"
+        eType="#//FilterOperatorType"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="GenericStep" eSuperTypes="#//FlowStep"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Join" eSuperTypes="#//FlowStep">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="tableLeft" lowerBound="1"
+        eType="#//Table"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="tableRight" lowerBound="1"
+        eType="#//Table"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="columnLeft" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="columnRight" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="type" lowerBound="1" eType="#//JoinType"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="resultTable" lowerBound="1"
+        eType="#//Table"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="selectColumns" lowerBound="1"
+        upperBound="-1" eType="#//Column"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Import" eSuperTypes="#//FlowStep">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="tablesToImport" lowerBound="1"
+        upperBound="-1" eType="#//TableToImport" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="TableToImport">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="table" lowerBound="1" eType="#//Table"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="path" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="delimiter" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="deleteMismatchedTypes"
+        lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Lookup" eSuperTypes="#//FlowStep">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="table" lowerBound="1" eType="#//Table"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="lookupTable" lowerBound="1"
+        eType="#//Table"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="column" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="operandColumn" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="matchColumn" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="lookupColumn" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="resultColumn" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="operation" lowerBound="1"
+        eType="#//LookupOperationType"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="resultTable" lowerBound="1"
+        eType="#//Table"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="RemoveDuplicates" eSuperTypes="#//FlowStep">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="table" lowerBound="1" eType="#//Table"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="column" lowerBound="1"
+        eType="#//Column"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Concat" eSuperTypes="#//StringManipulation">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="sourceA" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="sourceB" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="resultColumn" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="resultTable" lowerBound="1"
+        eType="#//Table"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="StringManipulation" abstract="true"
+      eSuperTypes="#//FlowStep">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="table" lowerBound="1" eType="#//Table"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Split" eSuperTypes="#//StringManipulation">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="source" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="resultColumnB" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="resultColumnA" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="delimiter" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="atCharIndex" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="resultTable" lowerBound="1"
+        eType="#//Table"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Extract" eSuperTypes="#//StringManipulation">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="column" lowerBound="1"
+        eType="#//Column"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="lbChar" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="ubChar" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="pattern" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+</ecore:EPackage>

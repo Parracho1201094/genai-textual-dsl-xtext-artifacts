@@ -1,0 +1,217 @@
+package org.enorm.domain.steps.groupByStep;
+
+import org.enorm.Logger;
+import org.enorm.domain.enums.GroupByOperationType;
+import org.enorm.domain.tables.Column;
+import org.enorm.domain.tables.Table;
+import org.enorm.domain.tables.factories.FactoryTable;
+import org.enorm.domain.utils.EnumUtils;
+import org.enorm.domain.utils.ListUtils;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.enorm.domain.utils.EnumUtils.allIntegers;
+
+public class GroupByStepDefault implements IGroupByStep {
+
+    public Table apply(Table inputTable, List<Column> groupBy, Column operandColumn, GroupByOperationType operation,
+                       FactoryTable factoryTable) {
+
+        // Since we're working with positions in lists, we have to make sure that the given list of columns is sorted
+        // correctly with the column's table order
+        List<Column> orderedGroupBy = ListUtils.reorderListBasedOnAnother(inputTable.getColumnList(), groupBy);
+
+        // It will create a map that associates the values of the columns to group with the result that matches
+        // the group by key
+        // [idClient, idProduct] -> [Result of group by]
+        // Example: [2, 3] -> [10,2]
+        // Example: [C001, Orange] -> [10]
+        Map<List<Object>, List<Object>> groupedData = new HashMap<>();
+
+        // For all lines in the table
+        for (int lineIndex = 1; lineIndex <= inputTable.getNumLines(); lineIndex++) {
+
+            // Maps <Column, Value> to this specific line that we are iterating
+            Map<Column, Object> columnInfoInThisLine = inputTable.getLineInfo(lineIndex);
+
+            // From all columns of the line, we remove those that doesn't belong go the group by
+            List<Column> columnsToGroup = inputTable.getColumnList().stream().filter(orderedGroupBy::contains).toList();
+
+            // It will be saved the values corresponding to each column to group by
+            // Example: [2, P203]
+            // Example: [antonio, 2]
+            List<Object> valuesToGroup = new ArrayList<>();
+
+            for (Column column : columnsToGroup) {
+                valuesToGroup.add(columnInfoInThisLine.get(column));
+            }
+
+            // The value to put on the result column of this specific group by key
+            Object operandResult = columnInfoInThisLine.get(operandColumn);
+
+            // Adds to the map the group by key and the result. If the key in question already exists, we add the result
+            // to a resultant list to do the operation later with all values
+            if (groupedData.get(valuesToGroup) == null) {
+                groupedData.put(valuesToGroup, new ArrayList<>(List.of(operandResult)));
+            } else {
+                List<Object> newList = new ArrayList<>(groupedData.get(valuesToGroup));
+                newList.add(operandResult);
+                groupedData.put(valuesToGroup, newList);
+            }
+        }
+
+        // Now for all gathered information, it's necessary to iterate over the map and do the group by operation
+        // over the list that was accumulated
+        // Example: [2 , P001] -> [1,10,3], with a SUM the result is: [2, P001] -> 14
+        Map<List<Object>, Object> finalGroupedData = new HashMap<>();
+
+        for (List<Object> key : groupedData.keySet()) {
+            List<Object> value = groupedData.get(key);
+
+            switch (operation) {
+                case SUM -> {
+                    finalGroupedData.put(key, sumValues(value));
+                }
+                case MAX -> {
+                    finalGroupedData.put(key, maxValues(value));
+                }
+                case MIN -> {
+                    finalGroupedData.put(key, minValues(value));
+                }
+                case COUNT -> {
+                    finalGroupedData.put(key, (double) value.size());
+                }
+                case AVERAGE -> {
+                    finalGroupedData.put(key, avgValues(value));
+                }
+            }
+        }
+
+        // Uses the factory received and populates with the group by information
+        Table resultTable = factoryTable.generateTable();
+        loadFromGroupByData(resultTable, orderedGroupBy, finalGroupedData, operandColumn);
+
+        Logger.log(Logger.LogLevel.INFO, "GroupByStepDefault success.");
+
+        return resultTable;
+    }
+
+    private static Object sumValues(List<Object> values) {
+        if (allIntegers(values)) {
+            return values.stream().mapToInt(e -> (Integer) e).sum();
+        } else {
+            return values.stream().mapToDouble(GroupByStepDefault::toDouble).sum();
+        }
+    }
+
+    private static Object maxValues(List<Object> values) {
+        if (allIntegers(values)) {
+            return values.stream().mapToInt(e -> (Integer) e).max().orElse(Integer.MIN_VALUE);
+        } else {
+            return values.stream().mapToDouble(GroupByStepDefault::toDouble).max().orElse(Double.MIN_VALUE);
+        }
+    }
+
+    private static Object minValues(List<Object> values) {
+        if (allIntegers(values)) {
+            return values.stream().mapToInt(e -> (Integer) e).min().orElse(Integer.MAX_VALUE);
+        } else {
+            return values.stream().mapToDouble(GroupByStepDefault::toDouble).min().orElse(Double.MAX_VALUE);
+        }
+    }
+
+    private static Object avgValues(List<Object> values) {
+        double sum = values.stream().mapToDouble(GroupByStepDefault::toDouble).sum();
+        double avg = sum / values.size();
+        double rounded = BigDecimal.valueOf(avg).setScale(2, RoundingMode.HALF_UP).doubleValue();
+
+        if (allIntegers(values) && rounded == Math.floor(rounded)) {
+            return (int) rounded;
+        } else {
+            return rounded;
+        }
+    }
+
+    private static double toDouble(Object e) {
+
+        if (e instanceof Integer) {
+            return ((Integer) e).doubleValue();
+        } else if (e instanceof Double) {
+            return (Double) e;
+        } else {
+            Logger.log(Logger.LogLevel.ERROR, "Error in GroupByStepDefault: unsupported number type.");
+            throw new IllegalArgumentException("Unsupported number type");
+        }
+    }
+
+    /**
+     * Loads the table with the information provident by a group by operation
+     *
+     * @param groupByList   The list of the columns that were grouped by
+     *                      Example: [idClient, idProduct]
+     * @param data          The object that maps the information about the columns and the lines
+     *                      Example:
+     *                      [1, P1] -> 22
+     *                      [1, P2] -> 92
+     *                      [11, P1] -> 100
+     * @param operandColumn The column that corresponds to the result (it will be associated with the right side of the
+     *                      data map)
+     */
+    private void loadFromGroupByData(Table resultTable, List<Column> groupByList, Map<List<Object>, Object> data,
+                                     Column operandColumn) {
+
+        // It will iterate over the columns to populate them with all the lines
+        for (Column column : resultTable.getColumnList()) {
+
+            // Obtains the index of the column in the received list
+            int indexColumnListReceived = groupByList.indexOf(column);
+
+            if (indexColumnListReceived == -1 || column.equals(operandColumn)) {
+                continue;
+            }
+
+            // For this column this object it will map the line to the value in question
+            Map<Integer, Object> columnLineInfo = new HashMap<>();
+
+            // Now we will iterate over the map and take the value from the groupedBy columns at the index of the
+            //  higher loop columns
+            // Example: [idClient, idProduct]
+            //          [1, P1] -> 22
+            //          [1, P2] -> 92
+            //          [11, P1] -> 100
+            // Result of idClient loop:
+            //          index = 0, so 1
+            //          index = 0, so 1
+            //          index = 0, so 11
+            int lineCounter = 1;
+
+            for (List<Object> key : data.keySet()) {
+                String valueToString = key.get(indexColumnListReceived).toString();
+                Object value = EnumUtils.parseValue(valueToString, column.type());
+
+                columnLineInfo.put(lineCounter++, value);
+            }
+
+            // Adds to the table maps
+            resultTable.getColumnInfo().put(column, columnLineInfo);
+        }
+
+        // Now, adds the content to the result column
+        Map<Integer, Object> columnLineInfo = new HashMap<>();
+        int lineCounter = 1;
+
+        for (Object key : data.values()) {
+            Object value = EnumUtils.parseValue(key.toString(), operandColumn.type());
+            columnLineInfo.put(lineCounter++, value);
+        }
+
+        Column referencedExistingColumn = resultTable.getColumnList().stream().filter(c ->
+                c.equals(operandColumn)).findFirst().get();
+        resultTable.getColumnInfo().put(referencedExistingColumn, columnLineInfo);
+    }
+}

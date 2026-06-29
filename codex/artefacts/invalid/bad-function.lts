@@ -1,0 +1,21 @@
+process BadFunction {
+    input data from csv "data.csv" {
+        text: string;
+    }
+    table result {
+        value: decimal;
+    }
+    output resultCsv table result to csv "result.csv";
+    log processLog to "result.log" levels errors;
+
+    steps {
+        load data;
+        create empty result;
+        append rows from data to result map {
+            // ERROR LTS_UNKNOWN_FUNCTION and wrong result type.
+            result.value = mystery(data.text);
+        };
+        save result to resultCsv;
+        save log processLog;
+    }
+}

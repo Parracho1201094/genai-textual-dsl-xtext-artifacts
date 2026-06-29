@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: %pluginName
+Bundle-SymbolicName: excelltsmetamodel.edit;singleton:=true
+Automatic-Module-Name: excelltsmetamodel.edit
+Bundle-Version: 1.0.0.qualifier
+Bundle-ClassPath: .
+Bundle-Activator: excelltsmetamodel.provider.ExcelltsmetamodelEditPlugin$Implementation
+Bundle-Vendor: %providerName
+Bundle-Localization: plugin
+Bundle-RequiredExecutionEnvironment: JavaSE-17
+Export-Package: excelltsmetamodel.provider
+Require-Bundle: org.eclipse.core.runtime,
+ excelltsmetamodel;visibility:=reexport,
+ org.eclipse.emf.edit;visibility:=reexport
+Bundle-ActivationPolicy: lazy

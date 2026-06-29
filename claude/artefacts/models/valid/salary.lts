@@ -1,0 +1,134 @@
+/*
+ * LTS Model – Case 1: Salary
+ *
+ * Inputs  : employee.csv, workedHours.csv, category.csv
+ * Output  : payments.csv
+ * Log     : salary_log.txt
+ *
+ * Logic:
+ *   1. Load all three CSV inputs.
+ *   2. Sort employee by id and remove duplicates.
+ *   3. Create an empty payments table.
+ *   4. Copy employee data into payments.
+ *   5. Join payments with category to bring in categoryName and hourValue.
+ *   6. Join payments with workedHours, aggregating worked hours with SUM.
+ *   7. Calculate the final payment column.
+ *   8. Drop temporary helper columns.
+ *   9. Save payments to CSV.
+ *  10. Save log.
+ */
+
+process SalaryProcess
+    description: "Calculate employee payments from worked hours and categories"
+{
+    // ── DATA SOURCES ────────────────────────────────────────────────────────
+    datasource employeeSource type CSV {
+        path:      "data/employee.csv"
+        delimiter: ","
+        hasHeader: true
+    }
+
+    datasource workedHoursSource type CSV {
+        path:      "data/workedHours.csv"
+        delimiter: ","
+        hasHeader: true
+    }
+
+    datasource categorySource type CSV {
+        path:      "data/category.csv"
+        delimiter: ","
+        hasHeader: true
+    }
+
+    datasource paymentsOutput type CSV {
+        path:      "output/payments.csv"
+        delimiter: ","
+        hasHeader: true
+    }
+
+    // ── TABLE DECLARATIONS ──────────────────────────────────────────────────
+
+    // Input tables
+    table employee from employeeSource {
+        id         : Integer
+        name       : String
+        categoryId : Integer
+    }
+
+    table workedHours from workedHoursSource {
+        employeeId  : Integer
+        workDate    : Date
+        hours       : Decimal
+    }
+
+    table category from categorySource {
+        id           : Integer
+        categoryName : String
+        hourValue    : Decimal
+    }
+
+    // Output table
+    output table payments to paymentsOutput {
+        employeeId   : Integer
+        employeeName : String
+        categoryId   : Integer
+        categoryName : String
+        hourValue    : Decimal
+        totalHours   : Decimal
+        payment      : Decimal
+    }
+
+    // Log
+    log salaryLog to "output/salary_log.txt"
+        level: WARNING
+
+    // ── STEPS ───────────────────────────────────────────────────────────────
+
+    // Step 1: Load all input tables
+    load employee
+    load workedHours
+    load category
+
+    // Step 2: Sort employees by id (ascending) and then remove duplicates
+    sort employee by id ASC
+    remove duplicates employee by id
+
+    // Step 3: Create the payments table (already declared above as output table,
+    //         but we start by populating it from employee)
+    create table paymentsDraft {
+        employeeId   : Integer
+        employeeName : String
+        categoryId   : Integer
+        categoryName : String
+        hourValue    : Decimal
+        totalHours   : Decimal
+        payment      : Decimal
+    }
+
+    // Step 4: Copy employee data into payments draft
+    copy employee into paymentsDraft
+
+    // Step 5a: Lookup categoryName from category table using categoryId
+    lookup categoryName from category on id into paymentsDraft using categoryId
+
+    // Step 5b: Lookup hourValue from category table using categoryId
+    lookup hourValue from category on id into paymentsDraft using categoryId
+
+    // Step 6: Join with workedHours – sum hours per employee
+    join paymentsDraft with workedHours
+        on employeeId = employeeId
+        aggregating hours using SUM
+
+    // Step 7: Calculate payment = totalHours * hourValue
+    calculate payment = totalHours * hourValue in paymentsDraft
+
+    // Step 8: Drop the intermediate helper columns no longer needed
+    drop columns hourValue, totalHours from paymentsDraft
+
+    // Step 9: Append the draft into the formal output table and save
+    append paymentsDraft to payments
+    save payments
+
+    // Step 10: Save the log
+    save salaryLog
+}

@@ -1,0 +1,101 @@
+Invoicing
+    logs: true
+    tables:
+        Clients:
+            id_client as NUMBER
+            name_client as TEXT
+            nif as TEXT
+            
+        Products:
+            id_product as NUMBER
+            name_product as TEXT
+            price as NUMBER
+            
+        Sales:
+            id_sale as NUMBER
+            id_client as NUMBER
+            id_product as NUMBER
+            quantity as NUMBER
+            
+        SalesGroupedByClientProductWithQuantity:
+            id_client as NUMBER
+            id_product as NUMBER
+            quantity as NUMBER
+            
+        SalesWithPrice:
+            id_client as NUMBER
+            id_product as NUMBER
+            quantity as NUMBER
+            price as NUMBER
+            
+        SalesWithTotal:
+            id_client as NUMBER
+            id_product as NUMBER
+            quantity as NUMBER
+            price as NUMBER
+            total as NUMBER
+            
+        GroupedByIdClientSumTotal:
+            id_client as NUMBER
+            total as NUMBER
+            
+        Final:
+            id_client as NUMBER
+            name_client as TEXT
+            nif as TEXT
+            total as NUMBER
+            
+    steps:
+    	IMPORT "Import" -> "RemoveDuplicatesBySalesId":
+			IMPORT FROM "/clients.csv" TO Clients WITH DELIMITER "," AND DELETE_MISMATCHED_TYPES AS false
+			IMPORT FROM "/products.csv" TO Products WITH DELIMITER ";" AND DELETE_MISMATCHED_TYPES AS false
+			IMPORT FROM "/sales.csv" TO Sales WITH DELIMITER "," AND DELETE_MISMATCHED_TYPES AS false
+			
+		REMOVE_DUPLICATES "RemoveDuplicatesBySalesId" -> "FilterQuantitiesHigherThan1":
+			ON Sales("Sales.id_sale")
+		
+		FILTER "FilterQuantitiesHigherThan1" -> "GroupByClientAndSumQuantity":
+			ON Sales("Sales.quantity") WHERE VALUES ARE GREATER_THAN "1"
+		
+		GROUP_BY "GroupByClientAndSumQuantity" -> "JoinGroupedWithPrice":
+			ON Sales("Sales.id_client", "Sales.id_product") AND SUM "Sales.quantity"
+			INTO SalesGroupedByClientProductWithQuantity("SalesGroupedByClientProductWithQuantity.quantity")
+		
+		JOIN INNER "JoinGroupedWithPrice" -> "ParseToTotalSchema":
+			ON Products("Products.id_product") WITH SalesGroupedByClientProductWithQuantity("SalesGroupedByClientProductWithQuantity.id_product")
+			SELECTING 
+				"Products.id_product",
+				"Products.price", 
+				"SalesGroupedByClientProductWithQuantity.id_client", 
+				"SalesGroupedByClientProductWithQuantity.quantity"
+			INTO SalesWithPrice
+		
+		APPEND_ROWS "ParseToTotalSchema" -> "GetTheTotal":
+			FROM SalesWithPrice TO SalesWithTotal
+			MAPPING:
+				"SalesWithPrice.id_client" TO "SalesWithTotal.id_client"
+				"SalesWithPrice.id_product" TO "SalesWithTotal.id_product"
+				"SalesWithPrice.quantity" TO "SalesWithTotal.quantity"
+				"SalesWithPrice.price" TO "SalesWithTotal.price"
+				
+		LOOKUP "GetTheTotal" -> "GroupsTheSumQuantityToPay":
+			FROM SalesWithTotal("SalesWithTotal.id_client") TO SalesWithTotal("SalesWithTotal.id_client")
+			AND PUT NUMERIC_MULTIPLY ("SalesWithTotal.quantity", "SalesWithTotal.price")
+			INTO SalesWithTotal("SalesWithTotal.total")	
+		
+		GROUP_BY "GroupsTheSumQuantityToPay" -> "JoinIntoClientToFinalize":
+			ON SalesWithTotal("SalesWithTotal.id_client") AND SUM "SalesWithTotal.total" 
+			INTO GroupedByIdClientSumTotal("GroupedByIdClientSumTotal.total")
+									
+		JOIN INNER "JoinIntoClientToFinalize" -> "SaveFinalTable":
+			ON GroupedByIdClientSumTotal("GroupedByIdClientSumTotal.id_client") WITH Clients("Clients.id_client")
+			SELECTING "Clients.id_client", "Clients.name_client", "Clients.nif", "GroupedByIdClientSumTotal.total"
+			INTO Final			
+			
+		SAVE "SaveFinalTable":
+			Final("id_client" , "name_client" , "nif", "total") TO "output-invoicing"
+			
+			
+			
+			
+		

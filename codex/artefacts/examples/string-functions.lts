@@ -1,0 +1,33 @@
+process StringFunctions {
+    input people from csv "data/people.csv" header true {
+        fullName: string required;
+        code: string required;
+    }
+
+    table normalized {
+        fullName: string;
+        firstName: string;
+        region: string;
+        displayName: string;
+    }
+
+    output normalizedCsv table normalized to csv "out/normalized.csv" header true;
+    log processLog to "out/strings.log" levels warnings, errors;
+
+    steps {
+        load people;
+        create empty normalized;
+        append rows from people to normalized map {
+            normalized.fullName = people.fullName;
+            normalized.firstName = split(people.fullName, " ", 0);
+            normalized.region = extract(people.code, 0, 2);
+            normalized.displayName = concat(
+                split(people.fullName, " ", 0),
+                " - ",
+                extract(people.code, 0, 2)
+            );
+        };
+        save normalized to normalizedCsv;
+        save log processLog;
+    }
+}

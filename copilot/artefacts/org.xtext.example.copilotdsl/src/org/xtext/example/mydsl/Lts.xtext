@@ -1,0 +1,320 @@
+grammar org.xtext.example.mydsl.Lts with org.eclipse.xtext.common.Terminals
+
+generate lts "http://www.xtext.org/example/mydsl/Lts"
+
+/**
+ * LTS (Load, Transform, Save) Grammar for Excel-like ETL Processes
+ * Designed for data analysts and subject matter experts
+ */
+
+Model:
+	processes+=LtsProcess*;
+
+// Top-level process definition
+LtsProcess:
+	'process' name=ID '{'
+		dataSources+=DataSource*
+		tables+=Table*
+		operations=Operations
+		output=Output
+	'}';
+
+// Data source definitions (CSV files)
+DataSource:
+	CsvDataSource;
+
+CsvDataSource:
+	'csv' 'source' name=ID 'from' filePath=STRING '{'
+		columns+=Column*
+	'}';
+
+// Table definitions with columns and types
+Table:
+	'table' name=ID '{'
+		columns+=Column*
+	'}';
+
+Column:
+	name=ID ':' type=DataType;
+
+DataType:
+	'String' | 'Integer' | 'Decimal' | 'Boolean' | 'Date' | 'Time' | 'DateTime';
+
+// Operations block containing all transformations
+Operations:
+	'operations' '{'
+		steps+=Step*
+	'}';
+
+// Steps can be various types of operations
+Step:
+	LoadStep | SaveStep | FilterStep | SortStep | JoinStep | GroupStep | 
+	AggregateStep | AppendStep | LookupStep | RemoveDuplicatesStep | 
+	CreateEmptyTableStep | InsertColumnStep | RemoveColumnStep | 
+	CalculatedColumnStep | RemoveRowsStep | DeleteRowsStep | 
+	StringOperationStep | CustomFunctionStep;
+
+// Load data from a CSV source into a table
+LoadStep:
+	'load' sourceTable=ID 'from' sourceName=ID (copyColumns='copy' 'all' 'columns')?;
+
+// Save table to CSV
+SaveStep:
+	'save' tableName=ID 'to' filePath=STRING;
+
+// Filter rows based on conditions
+FilterStep:
+	'filter' tableName=ID 'where' condition=Expression;
+
+// Sort table by columns
+SortStep:
+	'sort' tableName=ID 'by' sorts+=SortColumn (',' sorts+=SortColumn)*;
+
+SortColumn:
+	columnName=ID order=SortOrder?;
+
+SortOrder:
+	'ascending' | 'descending' | 'asc' | 'desc';
+
+// Join two tables
+JoinStep:
+	'join' leftTable=ID rightTable=ID 'on' joinCondition=JoinCondition 
+	('preserving' preserveType=PreserveType)? 
+	('with' aggregations+=Aggregation (',' aggregations+=Aggregation)*)?;
+
+JoinCondition:
+	leftColumn=ColumnRef '=' rightColumn=ColumnRef;
+
+ColumnRef:
+	table=ID '.' column=ID;
+
+PreserveType:
+	'all' | 'left' | 'right' | 'inner';
+
+// Group table by columns
+GroupStep:
+	'group' tableName=ID 'by' groupColumns+=ColumnRef (',' groupColumns+=ColumnRef)*
+	'{'
+		aggregations+=Aggregation*
+	'}';
+
+// Aggregation functions
+Aggregation:
+	columnName=ID ':' operation=AggregationFunction;
+
+AggregationFunction:
+	'sum' '(' column=ColumnRef ')' |
+	'count' '(' column=ColumnRef ')' |
+	'avg' '(' column=ColumnRef ')' |
+	'average' '(' column=ColumnRef ')' |
+	'min' '(' column=ColumnRef ')' |
+	'max' '(' column=ColumnRef ')' |
+	'first' '(' column=ColumnRef ')' |
+	'last' '(' column=ColumnRef ')' |
+	'concat' '(' column=ColumnRef (',' separator=STRING)? ')';
+
+// Aggregate without grouping (for entire table)
+AggregateStep:
+	'aggregate' tableName=ID '{'
+		aggregations+=Aggregation*
+	'}';
+
+// Append rows from one table to another
+AppendStep:
+	'append' sourceTable=ID 'to' targetTable=ID;
+
+// Lookup (VLOOKUP-like operation)
+LookupStep:
+	'lookup' tableName=ID 'column' lookupColumn=ColumnRef 'from' 
+	sourceTable=ID 'on' joinOn=ColumnRef 'returning' returnColumn=ColumnRef 
+	'to' newColumnName=ID;
+
+// Remove duplicate rows
+RemoveDuplicatesStep:
+	'remove' 'duplicates' 'from' tableName=ID ('based' 'on' columns+=ColumnRef (',' columns+=ColumnRef)*)?;
+
+// Create empty table
+CreateEmptyTableStep:
+	'create' 'empty' 'table' tableName=ID '{'
+		columns+=Column*
+	'}';
+
+// Insert a new column into a table
+InsertColumnStep:
+	'insert' 'column' columnName=ID 'into' tableName=ID 'of' 'type' type=DataType
+	('with' 'default' 'value' defaultValue=Literal)?;
+
+// Remove a column from a table
+RemoveColumnStep:
+	'remove' 'column' columnName=ColumnRef 'from' tableName=ID;
+
+// Create a calculated column (Excel-like formula)
+CalculatedColumnStep:
+	'calculate' 'column' columnName=ID 'in' tableName=ID 'of' 'type' type=DataType
+	'as' expression=Expression;
+
+// Remove rows based on condition
+RemoveRowsStep:
+	'remove' 'rows' 'from' tableName=ID 'where' condition=Expression;
+
+// Delete rows (alternative to remove)
+DeleteRowsStep:
+	'delete' 'rows' 'from' tableName=ID 'where' condition=Expression;
+
+// String operations: concatenation, splitting, extraction
+StringOperationStep:
+	StringConcatenationStep | StringSplitStep | StringExtractionStep |
+	StringToUpperStep | StringToLowerStep | StringTrimStep;
+
+StringConcatenationStep:
+	'concatenate' 'column' newColumnName=ID 'in' tableName=ID 'from'
+	columns+=ColumnRef (',' columns+=ColumnRef)+ ('with' separator=STRING)?
+	'of' 'type' type=DataType;
+
+StringSplitStep:
+	'split' 'column' columnRef=ColumnRef 'in' tableName=ID 'by' delimiter=STRING
+	'into' targetColumns+=ID (',' targetColumns+=ID)* 'of' 'type' type=DataType;
+
+StringExtractionStep:
+	'extract' 'from' sourceColumn=ColumnRef 'in' tableName=ID 
+	'pattern' pattern=STRING 'to' targetColumn=ID;
+
+StringToUpperStep:
+	'to' 'upper' 'column' columnRef=ColumnRef;
+
+StringToLowerStep:
+	'to' 'lower' 'column' columnRef=ColumnRef;
+
+StringTrimStep:
+	'trim' 'column' columnRef=ColumnRef;
+
+// Custom function calls
+CustomFunctionStep:
+	'call' 'function' functionName=ID '(' parameters+=FunctionParameter (',' parameters+=FunctionParameter)* ')'
+	'returning' returnColumn=ID 'in' tableName=ID;
+
+FunctionParameter:
+	name=ID '=' value=Expression;
+
+// Output block: save tables and logs
+Output:
+	'output' '{'
+		actions+=OutputAction*
+	'}';
+
+OutputAction:
+	SaveTableAction | SaveLogAction;
+
+SaveTableAction:
+	'save' tableName=ID 'to' filePath=STRING;
+
+SaveLogAction:
+	'save' 'log' 'to' filePath=STRING ('with' logTypes+=LogType (',' logTypes+=LogType)*)?;
+
+LogType:
+	'warnings' | 'errors' | 'info' | 'debug' | 'all';
+
+// Expressions for conditions and calculations  
+Expression:
+	OrExpression;
+
+OrExpression returns Expression:
+	AndExpression ({BinExpr.left=current} op=OrOp right=AndExpression)*;
+
+OrOp:
+	'or' | '||';
+
+AndExpression returns Expression:
+	ComparisonExpression ({BinExpr.left=current} op=AndOp right=ComparisonExpression)*;
+
+AndOp:
+	'and' | '&&';
+
+ComparisonExpression returns Expression:
+	AdditiveExpression (
+		({BinExpr.left=current} op=CompOp right=AdditiveExpression)
+		| ({InExpr.expr=current} 'in' '(' items+=Literal (',' items+=Literal)* ')')
+		| ({NotInExpr.expr=current} 'not' 'in' '(' items+=Literal (',' items+=Literal)* ')')
+		| ({LikeExpr.expr=current} 'like' pattern=STRING)
+		| ({BetweenExpr.expr=current} 'between' min=Literal 'and' max=Literal)
+	)*;
+
+CompOp:
+	'=' | '!=' | '<' | '>' | '<=' | '>=';
+
+AdditiveExpression returns Expression:
+	MultiplicativeExpression ({BinExpr.left=current} op=AddOp right=MultiplicativeExpression)*;
+
+AddOp:
+	'+' | '-';
+
+MultiplicativeExpression returns Expression:
+	UnaryExpression ({BinExpr.left=current} op=MulOp right=UnaryExpression)*;
+
+MulOp:
+	'*' | '/' | '%';
+
+UnaryExpression returns Expression:
+	PowerExpression
+	| {UnaryExpr} op=UnaryOp operand=PowerExpression;
+
+UnaryOp:
+	'not' | '!';
+
+PowerExpression returns Expression:
+	PrimaryExpression ({BinExpr.left=current} op='^' right=PrimaryExpression)?;
+
+BinExpr:
+	left=Expression op=OpType right=Expression;
+
+OpType:
+	ID;
+
+InExpr:
+	expr=Expression items+=Literal;
+
+NotInExpr:
+	expr=Expression items+=Literal;
+
+LikeExpr:
+	expr=Expression pattern=STRING;
+
+BetweenExpr:
+	expr=Expression min=Literal max=Literal;
+
+UnaryExpr:
+	op=UnaryOp operand=Expression;
+
+PrimaryExpression:
+	'(' Expression ')' |
+	Literal |
+	ColumnRef |
+	FunctionCall;
+
+FunctionCall:
+	name=ID '(' (parameters+=Expression (',' parameters+=Expression)*)? ')';
+
+Literal:
+	{Literal} (stringValue=STRING | numberValue=NUMBER | boolValue=BoolValue | nullValue='null');
+
+BoolValue:
+	'true' | 'false';
+
+terminal NUMBER:
+	('0'..'9')+ ('.' ('0'..'9')+)?;
+
+terminal STRING:
+	'"' (!'"' | '\\' '"')* '"' |
+	'\'' (!'\'' | '\\' '\'')* '\'';
+
+terminal ID:
+	('a'..'z' | 'A'..'Z' | '_') ('a'..'z' | 'A'..'Z' | '_' | '0'..'9')*;
+
+terminal WS:
+	(' ' | '\t' | '\r' | '\n')+;
+
+terminal ML_COMMENT:
+	'/*' -> '*/';
+
+terminal SL_COMMENT:
+	'//' !('\n' | '\r')* ('\r'? '\n')?;

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<excelltsmetamodel:Model xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:excelltsmetamodel="http://www.example.org/excelltsmetamodel" name="Salary">
+  <tables name="employee">
+    <columns name="id_employee_te" dataType="NUMBER"/>
+    <columns name="name_employee_te"/>
+    <columns name="id_category_te"/>
+  </tables>
+  <tables name="worked_hours">
+    <columns name="id_employee_twh" dataType="NUMBER"/>
+    <columns name="date_twh" dataType="DATE"/>
+    <columns name="worked_hours_twh" dataType="NUMBER"/>
+  </tables>
+  <tables name="category">
+    <columns name="id_category_tc" dataType="NUMBER"/>
+    <columns name="name_category_tc"/>
+    <columns name="value_worked_hours_tc" dataType="NUMBER"/>
+  </tables>
+  <tables name="payments">
+    <columns name="id_employee_tp" dataType="NUMBER"/>
+    <columns name="name_employee_tp"/>
+    <columns name="id_category_tp"/>
+    <columns name="name_category_tp"/>
+    <columns name="value_worked_hours_tp" dataType="NUMBER"/>
+    <columns name="worked_hours_tp" dataType="NUMBER"/>
+    <columns name="payment_tp" dataType="NUMBER"/>
+  </tables>
+  <tables name="Empl_Join_Category">
+    <columns name="id_employee_tejc" dataType="NUMBER"/>
+    <columns name="name_employee_tejc"/>
+    <columns name="id_category_tejc"/>
+    <columns name="name_category_tejc"/>
+    <columns name="value_worked_hours_tejc" dataType="NUMBER"/>
+  </tables>
+  <tables name="SUM_worked_hours">
+    <columns name="id_employee_tswk" dataType="NUMBER"/>
+    <columns name="total_worked_hours_tswk"/>
+  </tables>
+  <tables name="EmplCategory_Join_SumWokedHours">
+    <columns name="id_employee_tecjwh" dataType="NUMBER"/>
+    <columns name="name_employee_tecjwh"/>
+    <columns name="id_category_tecjwh"/>
+    <columns name="name_category_tecjwh"/>
+    <columns name="value_worked_hours_tecjwh" dataType="NUMBER"/>
+    <columns name="worked_hours_tecjwh" dataType="NUMBER"/>
+  </tables>
+  <tables name="payments_final">
+    <columns name="id_employee_tpf" dataType="NUMBER"/>
+    <columns name="name_employee_tpf"/>
+    <columns name="id_category_tpf"/>
+    <columns name="name_category_tpf"/>
+    <columns name="payment_tpf" dataType="NUMBER"/>
+  </tables>
+  <steps xsi:type="excelltsmetamodel:Import" name="Load salary tables" description="Load all the tables needed for salary processing " next="//@steps.1">
+    <tablesToImport table="//@tables.0" path="path" delimiter=";" deleteMismatchedTypes="true"/>
+    <tablesToImport table="//@tables.2" path="path" delimiter=";"/>
+    <tablesToImport table="//@tables.1" path="path" delimiter=";"/>
+  </steps>
+  <steps xsi:type="excelltsmetamodel:Sort" name="by employee id" description="Order all employees in ascending way" next="//@steps.2" table="//@tables.0" column="//@tables.0/@columns.0"/>
+  <steps xsi:type="excelltsmetamodel:RemoveDuplicates" name="Delete all ids duplicated" description="The goal is to clean duplicated entries" next="//@steps.3" table="//@tables.0" column="//@tables.0/@columns.0"/>
+  <steps xsi:type="excelltsmetamodel:Join" name="Employee with Category" description="" next="//@steps.4" tableLeft="//@tables.0" tableRight="//@tables.2" columnLeft="//@tables.0/@columns.0" columnRight="//@tables.2/@columns.0" resultTable="//@tables.4" selectColumns="//@tables.0/@columns.2 //@tables.0/@columns.0 //@tables.0/@columns.1 //@tables.2/@columns.2"/>
+  <steps xsi:type="excelltsmetamodel:Group" name="Id And Sum Worked_Hours" description="Obtains the total of hours per employee" next="//@steps.5" table="//@tables.1" groupBy="//@tables.1/@columns.0" resultTable="//@tables.5" operandColumn="//@tables.1/@columns.2" resultColumn="//@tables.5/@columns.1"/>
+  <steps xsi:type="excelltsmetamodel:Join" name="EmplCategory Join SumWokedHours" description="It will join the EmployeeCategory with the sum of hours" next="//@steps.6" tableLeft="//@tables.4" tableRight="//@tables.5" columnLeft="//@tables.4/@columns.0" columnRight="//@tables.5/@columns.0" resultTable="//@tables.6" selectColumns="//@tables.4/@columns.2 //@tables.4/@columns.0 //@tables.4/@columns.3 //@tables.4/@columns.1 //@tables.4/@columns.4 //@tables.5/@columns.1"/>
+  <steps xsi:type="excelltsmetamodel:AppendRows" name="Move content to the Payment Table" description="It will move all the content of EmployeeCategory and Sum Hours to the payment" next="//@steps.7" originTable="//@tables.6" destinTable="//@tables.3">
+    <associations originCol="//@tables.6/@columns.0" destinCol="//@tables.3/@columns.0"/>
+    <associations originCol="//@tables.6/@columns.1" destinCol="//@tables.3/@columns.1"/>
+    <associations originCol="//@tables.6/@columns.2" destinCol="//@tables.3/@columns.2"/>
+    <associations originCol="//@tables.6/@columns.1" destinCol="//@tables.3/@columns.3"/>
+    <associations originCol="//@tables.6/@columns.4" destinCol="//@tables.3/@columns.4"/>
+    <associations originCol="//@tables.6/@columns.5" destinCol="//@tables.3/@columns.5"/>
+  </steps>
+  <steps xsi:type="excelltsmetamodel:Lookup" name="Operation to get the total to pay per employee" description="It will multiply the column value_worked_hours by worked_hours and store it on payment" next="//@steps.8" table="//@tables.3" lookupTable="//@tables.3" column="//@tables.3/@columns.0" operandColumn="//@tables.3/@columns.4" matchColumn="//@tables.3/@columns.0" lookupColumn="//@tables.3/@columns.5" resultColumn="//@tables.3/@columns.6" operation="NUMERIC_MULTIPLY" resultTable="//@tables.3"/>
+  <steps xsi:type="excelltsmetamodel:AppendRows" name="Remove worked hours and the value from final payments" description="After the calculation, remove the columns that are not needed" next="//@steps.9" originTable="//@tables.3" destinTable="//@tables.7">
+    <associations originCol="//@tables.3/@columns.0" destinCol="//@tables.7/@columns.0"/>
+    <associations originCol="//@tables.3/@columns.1" destinCol="//@tables.7/@columns.1"/>
+    <associations originCol="//@tables.3/@columns.2" destinCol="//@tables.7/@columns.2"/>
+    <associations originCol="//@tables.3/@columns.1" destinCol="//@tables.7/@columns.3"/>
+    <associations originCol="//@tables.3/@columns.6" destinCol="//@tables.7/@columns.4"/>
+  </steps>
+  <steps xsi:type="excelltsmetamodel:Save" name="Save final table" description="Save the payment final table to disk">
+    <tablesToSave table="//@tables.7" path="path">
+      <columnsNames>id_employee</columnsNames>
+      <columnsNames>name_employee</columnsNames>
+      <columnsNames>id_category</columnsNames>
+      <columnsNames>name_category</columnsNames>
+      <columnsNames>payment</columnsNames>
+    </tablesToSave>
+  </steps>
+</excelltsmetamodel:Model>

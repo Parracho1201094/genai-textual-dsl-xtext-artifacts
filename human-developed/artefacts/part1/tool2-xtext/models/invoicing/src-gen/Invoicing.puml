@@ -1,0 +1,178 @@
+@startuml
+digraph model {
+	subgraph tier1 {
+	    node [color="#99ff99",style="filled",group="tier1"]
+	    "Clients"
+	    "Products"
+	    "Sales"
+	}
+	subgraph tier2 {
+	    node [color="lightyellow",style="filled",group="tier2"]
+	    "SalesGroupedByClientProductWithQuantity"
+	    "GroupedByIdClientSumTotal"
+	    "SalesWithTotal"
+	    "SalesWithPrice"
+	    "Final"
+	}
+	subgraph tier3 {
+	    node [color="lightblue",style="filled",group="tier3"]
+	    "LoadTables"
+	    "RemoveDuplicatesBySalesId"
+	    "FilterQuantitiesHigherThan10"
+	    "GroupByClientAndSumQuantity"
+	    "JoinGroupedWithPrice"
+	    "ParseToTotalSchema"
+	    "GetTheTotal"
+	    "GroupsTheSumQuantityToPay"
+	    "JoinIntoClientToFinalize"
+	    "SaveFinalTable"
+	}
+"Clients" [shape=box, label="Table: Clients\n
+id_client: NUMBER
+name_client: TEXT
+nif: TEXT
+"]
+"Products" [shape=box, label="Table: Products\n
+id_product: NUMBER
+name_product: TEXT
+price: NUMBER
+"]
+"Sales" [shape=box, label="Table: Sales\n
+id_sale: NUMBER
+id_client: NUMBER
+id_product: NUMBER
+quantity: NUMBER
+"]
+"SalesGroupedByClientProductWithQuantity" [shape=box, label="Table: SalesGroupedByClientProductWithQuantity\n
+id_sale: NUMBER
+id_client: NUMBER
+id_product: NUMBER
+quantity: NUMBER
+"]
+"SalesWithPrice" [shape=box, label="Table: SalesWithPrice\n
+id_sale: NUMBER
+id_client: NUMBER
+id_product: NUMBER
+quantity: NUMBER
+price: NUMBER
+"]
+"SalesWithTotal" [shape=box, label="Table: SalesWithTotal\n
+id_sale: NUMBER
+id_client: NUMBER
+id_product: NUMBER
+quantity: NUMBER
+price: NUMBER
+total: NUMBER
+"]
+"GroupedByIdClientSumTotal" [shape=box, label="Table: GroupedByIdClientSumTotal\n
+id_client: NUMBER
+total: NUMBER
+"]
+"Final" [shape=box, label="Table: Final\n
+id_client: NUMBER
+name_client: TEXT
+nif: TEXT
+total: NUMBER
+"]
+"LoadTables" [shape=box, label="Type = Import\n
+Name = LoadTables
+Description = 
+Tables = Clients (/clients.csv) delimited by ',' Delete Mismatched Types = false
+Products (/products.csv) delimited by ',' Delete Mismatched Types = false
+Sales (/sales.csv) delimited by ',' Delete Mismatched Types = false
+"]
+"RemoveDuplicatesBySalesId" [shape=box, label="Type = Remove Duplicates\n
+Name = RemoveDuplicatesBySalesId
+Description = 
+From Table = Sales
+"]
+"FilterQuantitiesHigherThan10" [shape=box, label="Type = Filter\n
+Name = FilterQuantitiesHigherThan10
+Description = 
+From Table = Sales
+Expression = quantity GREATER_THAN 10
+"]
+"GroupByClientAndSumQuantity" [shape=box, label="Type = Group by\n
+Name = GroupByClientAndSumQuantity
+Description = 
+From Table = Sales
+Result Table = SalesGroupedByClientProductWithQuantity
+Result Column = quantity
+"]
+"JoinGroupedWithPrice" [shape=box, label="Type = Join\n
+Name = JoinGroupedWithPrice
+Description = 
+Table Left = Products
+Table Right = SalesGroupedByClientProductWithQuantity
+Type = INNER
+Condition = id_product ON id_product
+Select Columns = id_sale, id_client, id_product, quantity, price
+"]
+"ParseToTotalSchema" [shape=box, label="Type = Append Rows\n
+Name = ParseToTotalSchema
+Description = 
+From Table = SalesWithPrice
+Result Table = SalesWithTotal
+"]
+"ParseToTotalSchema' associations" [shape=box, label="ParseToTotalSchema' associations\n
+SalesWithPrice.id_sale -> SalesWithTotal.id_sale
+SalesWithPrice.id_client -> SalesWithTotal.id_client
+SalesWithPrice.id_product -> SalesWithTotal.id_product
+SalesWithPrice.quantity -> SalesWithTotal.quantity
+SalesWithPrice.price -> SalesWithTotal.id_sale
+"]
+"GetTheTotal" [shape=box, label="Type = Lookup\n
+Name = GetTheTotal\n
+Description = 
+Origin Table = SalesWithTotal
+Lookup Table = SalesWithTotal
+Result Table = SalesWithTotal
+Base Column (origin table) = id_sale
+Match Column (lookup table) = id_sale
+Operand column (origin table) = quantity
+Operation = NUMERIC_MULTIPLY
+Operator (lookup table) = NUMERIC_MULTIPLY
+"]
+"GroupsTheSumQuantityToPay" [shape=box, label="Type = Group by\n
+Name = GroupsTheSumQuantityToPay
+Description = 
+From Table = SalesWithTotal
+Result Table = GroupedByIdClientSumTotal
+Result Column = total
+"]
+"JoinIntoClientToFinalize" [shape=box, label="Type = Join\n
+Name = JoinIntoClientToFinalize
+Description = 
+Table Left = GroupedByIdClientSumTotal
+Table Right = Clients
+Type = INNER
+Condition = id_client ON id_client
+Select Columns = id_client, name_client, nif, total
+"]
+"SaveFinalTable" [shape=box, label="Type = Save\n
+Name = SaveFinalTable
+Description = 
+Tables = Final(/.output-invoicing.csv)
+"]
+"LoadTables" -> "RemoveDuplicatesBySalesId" [label="Next"]
+"Clients" -> "LoadTables" [label="Imported"]
+"Products" -> "LoadTables" [label="Imported"]
+"Sales" -> "LoadTables" [label="Imported"]
+"RemoveDuplicatesBySalesId" -> "FilterQuantitiesHigherThan10" [label="Next"]
+"FilterQuantitiesHigherThan10" -> "GroupByClientAndSumQuantity" [label="Next"]
+"GroupByClientAndSumQuantity" -> "JoinGroupedWithPrice" [label="Next"]
+"GroupByClientAndSumQuantity" -> "SalesGroupedByClientProductWithQuantity" [label="Produces"]
+"JoinGroupedWithPrice" -> "ParseToTotalSchema" [label="Next"]
+"JoinGroupedWithPrice" -> "SalesWithPrice" [label="Produces"]
+"ParseToTotalSchema" -> "GetTheTotal" [label="Next"]
+"ParseToTotalSchema" -> "SalesWithTotal" [label="Produces"]
+"ParseToTotalSchema" -> "ParseToTotalSchema' associations" [label="Map as"]
+"GetTheTotal" -> "GroupsTheSumQuantityToPay" [label="Next"]
+"GetTheTotal" -> "SalesWithTotal" [label="Fill result on"]
+"GroupsTheSumQuantityToPay" -> "JoinIntoClientToFinalize" [label="Next"]
+"GroupsTheSumQuantityToPay" -> "GroupedByIdClientSumTotal" [label="Produces"]
+"JoinIntoClientToFinalize" -> "SaveFinalTable" [label="Next"]
+"JoinIntoClientToFinalize" -> "Final" [label="Produces"]
+"SaveFinalTable" -> "Final" [label="Saves"]
+}
+@enduml

@@ -1,0 +1,119 @@
+/*
+ * Grading ETL Process
+ * Demonstrates: load, join, group, aggregate, calculate columns, filter, save
+ */
+process GradingProcess {
+	// Define CSV data sources
+	csv source students from "students.csv" {
+		student_id: Integer,
+		student_name: String,
+		email: String
+	}
+	
+	csv source courses from "courses.csv" {
+		course_id: Integer,
+		course_name: String,
+		credits: Integer
+	}
+	
+	csv source exams from "exams.csv" {
+		student_id: Integer,
+		course_id: Integer,
+		exam_name: String,
+		score: Decimal,
+		exam_date: Date
+	}
+	
+	// Define working tables
+	table exam_scores {
+		student_id: Integer,
+		student_name: String,
+		email: String,
+		course_id: Integer,
+		course_name: String,
+		credits: Integer,
+		exam_name: String,
+		score: Decimal,
+		exam_date: Date
+	}
+	
+	table student_course_grades {
+		student_id: Integer,
+		student_name: String,
+		email: String,
+		course_id: Integer,
+		course_name: String,
+		credits: Integer,
+		average_score: Decimal,
+		exam_count: Integer,
+		final_grade: String
+	}
+	
+	table final_grades {
+		student_id: Integer,
+		student_name: String,
+		course_id: Integer,
+		course_name: String,
+		final_grade: String,
+		final_score: Decimal,
+		credits: Integer
+	}
+	
+	// All transformation operations
+	operations {
+		// Load exam data as base
+		load exam_scores from exams copy all columns;
+		
+		// Join with student information
+		join exam_scores students on exam_scores.student_id = students.student_id
+			preserving left;
+		
+		// Join with course information
+		join exam_scores courses on exam_scores.course_id = courses.course_id
+			preserving left;
+		
+		// Remove duplicate exam records
+		remove duplicates from exam_scores based on student_id;
+		
+		// Group by student and course to calculate average score
+		group exam_scores by student_id, course_id {
+			student_name: first(student_name),
+			email: first(email),
+			course_name: first(course_name),
+			credits: first(credits),
+			average_score: avg(score),
+			exam_count: count(exam_name)
+		};
+		
+		// Create calculated column for final grade based on average score
+		calculate column final_grade in student_course_grades of type String
+			as case
+				when average_score >= 90.0 then 'A'
+				when average_score >= 80.0 then 'B'
+				when average_score >= 70.0 then 'C'
+				when average_score >= 60.0 then 'D'
+				else 'F'
+			end;
+		
+		// Filter out students with F grades (optional - for passing students only)
+		filter student_course_grades where final_grade != 'F';
+		
+		// Copy to final grades table with required columns only
+		load final_grades from student_course_grades copy all columns;
+		
+		// Sort by student name and then by course name
+		sort final_grades by student_name ascending;
+		sort final_grades by course_name ascending;
+		
+		// Set final score based on average
+		calculate column final_score in final_grades of type Decimal
+			as average_score;
+	}
+	
+	// Output block
+	output {
+		save student_course_grades to "student_grades.csv";
+		save final_grades to "final_grades_report.csv";
+		save log to "grading_process.log" with warnings, errors, info;
+	}
+}
